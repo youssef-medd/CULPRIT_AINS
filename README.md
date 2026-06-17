@@ -38,67 +38,7 @@ Capture and tracing are commoditized (LangSmith, Phoenix, Braintrust). Culprit's
 
 ### 4.1 Architecture
 
-```mermaid
-flowchart TB
-    subgraph SUT["Subject Under Test"]
-        AG["JSM Triage Agent<br/>LangGraph: Retrieve to Plan to Act to Summarize<br/>mocked JSM tools, seedable"]
-    end
-
-    subgraph CAP["1 - Capture"]
-        REC["Trajectory Recorder<br/>OTel-GenAI spans + per-step state snapshot"]
-        TAG["Step Tagger<br/>rule-based + LLM fallback"]
-    end
-
-    CS[("Contract Store<br/>rubrics + ordering invariants - YAML")]
-
-    subgraph ONLINE["2a - Online deterministic layer"]
-        SHD["Shadow Contract Monitor<br/>runtime-verification state machine<br/>mid-flight divergence alerts"]
-    end
-
-    subgraph EVAL["2b - Semantic evaluation + confidence"]
-        CJ["Component Judges<br/>Retrieval | Planning | Execution | Synthesis"]
-        EE["End-to-End Judge<br/>task success vs spec"]
-        CONF["Self-Consistency Confidence<br/>k-sample agreement"]
-        DEB["Multi-Agent Debate<br/>Senior Judge tie-break<br/>on disagreement"]
-    end
-
-    HUMAN["Human Review<br/>unresolved / low-confidence"]
-
-    subgraph ATTR["3 - Attribution - Core IP"]
-        DEC["Decisive-Step Selector<br/>earliest high-confidence violation"]
-        CF["Minimal Counterfactual Repair<br/>smallest edit that flips outcome + CRS"]
-        VG["Verdict Generator<br/>structured human-readable report"]
-    end
-
-    subgraph META["4 - Meta-Evaluation - Differentiator (offline)"]
-        SFG["Synthetic Failure Generator<br/>+ Trajectory Mutation Engine (fuzzing)"]
-        MEV["Meta-Evaluator<br/>attribution acc / P / R / F1 + resilience report"]
-    end
-
-    DRIFT["5 - Batch Drift Monitor (optional)<br/>PSI/KL across run batches"]
-    DASH["DAG Dashboard<br/>red decisive node, click: contract/evidence/repair"]
-
-    AG --> REC --> TAG --> CJ
-    AG -.live steps.-> SHD
-    CS --> SHD
-    CS --> CJ
-    SHD -->|"structural violation"| DEC
-    CJ --> EE --> CONF
-    CONF -->|"agree / high-confidence"| DEC
-    CONF -.disagreement.-> DEB
-    DEB -->|"resolved"| DEC
-    DEB -.unresolved.-> HUMAN
-    DEC -->|"fail or low-confidence"| CF --> VG
-    DEC -->|"pass / high-confidence"| VG
-    VG --> DASH
-    SHD -.divergence alert.-> DASH
-    VG --> DRIFT
-    SFG -.labeled + mutated trajectories.-> TAG
-    VG -.predicted attribution.-> MEV
-    SFG -.ground-truth labels.-> MEV
-    MEV --> DASH
-    CF -.intervention.-> AG
-```
+![Culprit system architecture](docs/images/architecture.jpg)
 
 
 The **courtroom metaphor** keeps the whole system intuitive and maps 1:1 to it: behavioral **contracts** are the statute; the **judges** are a panel; **evidence** is cited trajectory fields; the **verdict** is the report; **confidence** is jury agreement; **counterfactual replay** re-enacts the run to confirm the culprit; the **meta-evaluator** is the appeals court that audits the judges.
@@ -123,53 +63,11 @@ The **courtroom metaphor** keeps the whole system intuitive and maps 1:1 to it: 
 
 ### 4.3 Data flow
 
-```mermaid
-flowchart LR
-    T["Ticket - synthetic"] --> TR["Trajectory<br/>TrajectoryStep list"]
-    TR --> TT["Tagged Trajectory<br/>step_type per step"]
-    TT --> SV["Step Verdicts + E2E Verdict"]
-    SV --> CN["Confidence per verdict"]
-    CN -.disagreement.-> DB["Debate to Senior Judge<br/>resolve or escalate"]
-    DB --> AT
-    CN -->|"agree"| AT["Attribution<br/>decisive step + category + evidence"]
-    AT -.confirm.-> CFR["Minimal Repair<br/>smallest edit that flips = confirmed + CRS"]
-    AT --> RP["Verdict Report<br/>human-readable / DAG dashboard"]
-    CFR -.-> RP
-```
+![Culprit data flow](docs/images/data_flow.jpg)
 
 ### 4.4 Runtime sequence
 
-```mermaid
-sequenceDiagram
-    participant U as Engineer / Demo
-    participant A as JSM Agent
-    participant R as Recorder + Tagger
-    participant J as Judges (multi-level)
-    participant X as Attribution Engine
-    participant V as Verdict + DAG Dashboard
-
-    U->>A: Trigger run on ticket
-    A->>R: Emit spans (reasoning, tool calls, outputs)
-    R->>R: Build + tag trajectory
-    R->>J: Tagged trajectory + contracts
-    par Component judges (focused context, k-sample)
-        J->>J: Retrieval / Planning / Execution / Synthesis
-    and End-to-end
-        J->>J: Task success vs spec
-    end
-    opt judges disagree
-        J->>J: Debate pass vs fail, Senior Judge tie-break
-        J-->>U: Escalate if still unresolved
-    end
-    J->>X: Verdicts + confidence
-    X->>X: Select earliest decisive violation
-    alt fail or low-confidence
-        X->>A: Minimal repair: try k single-variable edits, smallest that flips
-        A-->>X: Outcome (pass / fail) + validated repair + CRS
-    end
-    X->>V: Confirmed attribution + evidence + minimal fix
-    V-->>U: Red decisive node + report (DAG dashboard)
-```
+![Culprit runtime sequence](docs/images/runtime_sequence.jpg)
 
 ### 4.5 The attribution algorithm
 
