@@ -38,7 +38,7 @@ Capture and tracing are commoditized (LangSmith, Phoenix, Braintrust). Culprit's
 
 ### 4.1 Architecture
 
-![Culprit system architecture](docs/images/architecture.jpg)
+![Culprit system architecture](docs/images/architecture.png)
 
 
 The **courtroom metaphor** keeps the whole system intuitive and maps 1:1 to it: behavioral **contracts** are the statute; the **judges** are a panel; **evidence** is cited trajectory fields; the **verdict** is the report; **confidence** is jury agreement; **counterfactual replay** re-enacts the run to confirm the culprit; the **meta-evaluator** is the appeals court that audits the judges.
@@ -63,11 +63,11 @@ The **courtroom metaphor** keeps the whole system intuitive and maps 1:1 to it: 
 
 ### 4.3 Data flow
 
-![Culprit data flow](docs/images/data_flow.jpg)
+![Culprit data flow](docs/images/data_flow.png)
 
 ### 4.4 Runtime sequence
 
-![Culprit runtime sequence](docs/images/runtime_sequence.jpg)
+![Culprit runtime sequence](docs/images/runtime_sequence.png)
 
 ### 4.5 The attribution algorithm
 
