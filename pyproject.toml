@@ -1,0 +1,76 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "culprit"
+version = "0.1.0"
+description = "Continuous evaluation with component-level failure attribution for non-deterministic AI agents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Midou" }]
+keywords = [
+    "llm-evaluation",
+    "failure-attribution",
+    "agent-observability",
+    "counterfactual",
+    "opentelemetry-genai",
+]
+
+# Phase 1 (foundation) needs only the core dependencies below.
+# Heavier subsystems are pulled in via the optional groups so the
+# foundation stays importable and testable on its own.
+dependencies = [
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "PyYAML>=6.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+agent = [
+    "langgraph>=0.2",
+    "langchain-core>=0.3",
+    "anthropic>=0.39",
+]
+recorder = [
+    "opentelemetry-api>=1.27",
+    "opentelemetry-sdk>=1.27",
+]
+verdict = ["Jinja2>=3.1"]
+drift = ["numpy>=1.26", "scipy>=1.13"]
+ui = ["streamlit>=1.38", "streamlit-agraph>=0.0.45"]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "mypy>=1.10",
+    "ruff>=0.5",
+    "types-PyYAML>=6.0",
+]
+
+[project.scripts]
+culprit = "culprit.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/youssef-medd/CULPRIT_AINS"
+Repository = "https://github.com/youssef-medd/CULPRIT_AINS"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/culprit"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
