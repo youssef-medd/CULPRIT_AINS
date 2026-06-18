@@ -69,6 +69,7 @@ class InvariantKind(StrEnum):
     """
 
     PRECEDES = "precedes"  # step type `before` must occur before `after`
+    TOOL_ORDER = "tool_order"  # tool `before_tool` must be called before `after_tool`
     TOOL_CAPABILITY = "tool_capability"  # `tool` must be capable of the requested action
     FIELD_AVAILABLE_BEFORE = "field_available_before"  # `field` retrieved before it is used
 
@@ -79,9 +80,15 @@ class Invariant(BaseModel):
     id: str
     description: str
     kind: InvariantKind
+    # PRECEDES: step-type ordering.
     before: StepType | None = None
     after: StepType | None = None
+    # TOOL_ORDER: tool-name ordering within the action phase.
+    before_tool: str | None = None
+    after_tool: str | None = None
+    # TOOL_CAPABILITY / FIELD_AVAILABLE_BEFORE.
     tool: str | None = None
+    capability: str | None = None
     field: str | None = None
     params: dict[str, Any] = Field(default_factory=dict)
 
