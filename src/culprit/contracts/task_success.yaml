@@ -1,0 +1,23 @@
+# Task-success contract for the JSM ticket-triage agent.
+# Consumed by the end-to-end judge: defines what "correct" means for a run.
+version: 1
+description: >
+  A run succeeds when the ticket is routed to the correct team, assigned a
+  priority consistent with its severity, and summarized in a way that is
+  grounded in the ticket and the retrieved context. "No tool errored" is NOT
+  sufficient — a run with all-ok tool calls can still misroute the ticket
+  (the silent-failure case Culprit exists to catch).
+
+# Fields that must be present in the agent's final output.
+required_outputs:
+  - team
+  - priority
+  - summary
+
+# Human-readable success criteria the e2e judge scores against.
+success_criteria:
+  - The assigned team matches the ticket's product area and request type.
+  - The priority matches the severity/impact stated in the ticket.
+  - The summary asserts only facts present in the ticket or set by the agent's
+    own actions (no hallucinated fields).
+  - Every action taken is consistent with the final summary.
