@@ -1,0 +1,27 @@
+# Culprit Verdict — {{ a.run_id }}
+
+**Result:** ❌ FAIL
+**Decisive step:** `{{ a.decisive_step_id }}` ({{ a.decisive_step_type }})
+**Failure category:** {{ a.failure_category or "unclassified" }}
+**Confidence:** {{ "%.2f"|format(a.confidence) }} &nbsp;|&nbsp; **CRS:** {{ "%.2f"|format(a.crs) if a.crs is not none else "n/a" }}
+
+## Why
+{{ a.why }}
+
+## Evidence
+{% if a.evidence %}{% for e in a.evidence %}- `{{ e.field }}` — expected `{{ e.expected }}`, actual `{{ e.actual }}`{% if e.note %} ({{ e.note }}){% endif %}
+{% endfor %}{% else %}_No structured evidence cited._
+{% endif %}
+## Counterfactual confirmation
+{% if a.counterfactual.confirms_attribution %}**Confirmed.** Replaying from the decisive step with the repair flipped the outcome to `{{ a.counterfactual.result }}`{% if a.counterfactual.minimal %} via a minimal single-variable change{% endif %}.
+{% if a.counterfactual.repair %}
+**Validated repair:** {{ a.counterfactual.repair.description }}
+{% for edit in a.counterfactual.repair.edits %}- `{{ edit.field }}`: `{{ edit.from_value }}` → `{{ edit.to_value }}`
+{% endfor %}{% endif %}{% else %}**Not confirmed** by replay; attribution reported on correlational evidence (degraded mode).
+{% endif %}
+## Recommended fix
+{{ a.recommended_fix or "No automated fix suggestion available." }}
+{% if a.alternatives %}
+## Alternative suspects (lower priority)
+{% for s in a.alternatives %}- `{{ s }}`
+{% endfor %}{% endif %}
