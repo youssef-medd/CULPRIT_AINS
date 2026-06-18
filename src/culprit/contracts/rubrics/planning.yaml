@@ -1,0 +1,41 @@
+# Rubric for the PLANNING step of the JSM triage agent.
+step_type: planning
+version: 1
+description: >
+  Classify the ticket and choose the actions (which team, what priority, which
+  tools to call) to triage it. The plan must follow from the retrieved context
+  and the ticket itself, and must only select tools capable of the intended
+  action.
+reference_based: false
+
+criteria:
+  - id: team_correct
+    description: >
+      The chosen team matches the ticket's product area and request type, and is
+      consistent with the retrieved similar tickets.
+    weight: 0.35
+  - id: priority_correct
+    description: >
+      The chosen priority reflects the severity/impact described in the ticket
+      (e.g. a full outage is not planned as low priority).
+    weight: 0.25
+  - id: grounded_in_context
+    description: >
+      The plan's decisions are supported by the ticket and retrieved context,
+      not invented; it does not ignore clearly relevant retrieved tickets.
+    weight: 0.25
+  - id: capable_tools_selected
+    description: >
+      Each planned action is assigned to a tool actually capable of it
+      (set_team for routing, set_priority for priority, etc.).
+    weight: 0.15
+
+failure_categories:
+  - id: wrong_team_selected
+    description: The planned team does not match the ticket / retrieved context.
+  - id: wrong_priority
+    description: The planned priority does not match the ticket's severity.
+  - id: plan_ignores_context
+    description: The plan disregards clearly relevant retrieved context.
+  - id: incapable_tool_chosen
+    description: An action was assigned to a tool that cannot perform it.
