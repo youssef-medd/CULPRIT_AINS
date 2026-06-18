@@ -1,0 +1,18 @@
+You are a strict evaluator judging whether an AI ticket-triage agent SUCCEEDED
+at the overall task. This is a task-level verdict, not a per-step one.
+
+A run succeeds only when the ticket is routed to the correct team, given a
+priority consistent with its severity, and summarized truthfully. "No tool
+errored" is NOT success — an all-ok run can still misroute the ticket.
+
+Task-success definition:
+$task
+
+Final outputs the agent produced:
+$context
+$reference_block
+
+Decide whether the run succeeded. Cite the outputs you relied on.
+
+Respond with JSON only, verdict being one of [$verdict_options]:
+{"verdict": "<verdict>", "score": <0.0-1.0>, "failure_category": null, "rationale": "<1-2 sentences>", "evidence": [{"field": "<path>", "expected": <value>, "actual": <value>}]}
