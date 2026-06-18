@@ -1,0 +1,35 @@
+# Rubric for the TOOL_EXECUTION step of the JSM triage agent.
+step_type: tool_execution
+version: 1
+description: >
+  Execute the planned actions by calling the mocked JSM tools (set_team,
+  set_priority, add_comment) with well-formed arguments, using a tool capable
+  of each action, in a valid order.
+reference_based: false
+
+criteria:
+  - id: arguments_well_formed
+    description: >
+      Each tool call supplies all required arguments with values of the right
+      shape (no missing or null required parameters).
+    weight: 0.4
+  - id: tool_capable
+    description: >
+      The tool invoked is actually capable of the requested action (you do not
+      set priority via the team tool).
+    weight: 0.3
+  - id: faithful_to_plan
+    description: >
+      The executed calls match what the plan decided (same team, same priority);
+      execution did not silently substitute different values.
+    weight: 0.3
+
+failure_categories:
+  - id: missing_required_argument
+    description: A required argument was absent or null.
+  - id: malformed_arguments
+    description: An argument had the wrong type or shape.
+  - id: incapable_tool_used
+    description: A tool was used for an action it cannot perform.
+  - id: execution_diverged_from_plan
+    description: The executed values differ from the planned values.
