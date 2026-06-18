@@ -101,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     for r in reports:
         a = r.attribution
         if a.is_pass:
-            detail = "—"
+            detail = "-"
         else:
             mark = "confirmed" if a.confirmed else "unconfirmed"
             detail = f"{a.decisive_step_id} {a.decisive_step_type} [{mark}] :: {a.recommended_fix}"
