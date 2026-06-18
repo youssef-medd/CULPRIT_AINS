@@ -9,6 +9,7 @@ Postgres at scale, with trajectories staying append-only.
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -42,12 +43,12 @@ class TrajectoryStore:
         return conn
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript(_SCHEMA)
 
     def save(self, trajectory: Trajectory) -> None:
         """Persist a trajectory (idempotent on run_id)."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.execute(
                 "INSERT OR REPLACE INTO trajectories "
                 "(run_id, ticket_id, final_status, created_at, payload) "
@@ -63,7 +64,7 @@ class TrajectoryStore:
 
     def get(self, run_id: str) -> Trajectory | None:
         """Load a trajectory by run_id, or ``None`` if absent."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             row = conn.execute(
                 "SELECT payload FROM trajectories WHERE run_id = ?", (run_id,)
             ).fetchone()
@@ -71,7 +72,7 @@ class TrajectoryStore:
 
     def all_run_ids(self) -> list[str]:
         """Return every stored run_id, oldest first."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             rows = conn.execute(
                 "SELECT run_id FROM trajectories ORDER BY created_at"
             ).fetchall()
@@ -79,5 +80,5 @@ class TrajectoryStore:
 
     def count(self) -> int:
         """Return the number of stored trajectories."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             return conn.execute("SELECT COUNT(*) FROM trajectories").fetchone()[0]
