@@ -128,6 +128,10 @@ class CounterfactualEngine:
         candidates: list[_Candidate] = []
 
         if suspect.step_type == StepType.RETRIEVAL:
+            # The "from" value is what retrieval actually used (often null/wrong),
+            # read off the decisive step itself, not the ticket.
+            step = trajectory.step_by_id(suspect.step_id)
+            current_area = step.action.arguments.get("product_area") if step and step.action else None
             areas: list[str] = []
             if ticket.get("product_area"):
                 areas.append(ticket["product_area"])
@@ -144,7 +148,7 @@ class CounterfactualEngine:
                             edits=[
                                 RepairEdit(
                                     field="action.arguments.product_area",
-                                    from_value=ticket.get("product_area"),
+                                    from_value=current_area,
                                     to_value=area,
                                 )
                             ],
