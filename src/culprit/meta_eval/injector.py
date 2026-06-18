@@ -127,8 +127,15 @@ def _set_routing(traj: Trajectory, team: str, priority: str, summary: str | None
 def inject_retrieval_no_filter(traj: Trajectory) -> tuple[Trajectory, FaultLabel]:
     """Retrieval runs unfiltered → mixed context → planner faithfully misroutes."""
     t = traj.model_copy(deep=True)
+    plan = _step_of(t, StepType.PLANNING)
+    correct_team = plan.result.get("team") if plan and isinstance(plan.result, dict) else None
     _set_retrieved(t, _MIXED_RESULTS, filtered=False)
-    wrong_team = Counter(x["team"] for x in _MIXED_RESULTS).most_common(1)[0][0]
+    # Route to a team from the mixed context that genuinely differs from the
+    # correct one, so the corrupted run actually misroutes (not a coincidental hit).
+    teams = Counter(x["team"] for x in _MIXED_RESULTS)
+    wrong_team = next(
+        (tm for tm, _ in teams.most_common() if tm != correct_team), "Application Support"
+    )
     _set_routing(t, wrong_team, _current_priority(t))
     r = _step_of(t, StepType.RETRIEVAL)
     return t, FaultLabel(
