@@ -76,9 +76,62 @@ class RuleBasedPlanner:
         )
 
 
-def default_planner() -> Planner:
-    """Return the always-available deterministic planner."""
-    return RuleBasedPlanner()
+class LLMPlanner:
+    """Non-deterministic planner backed by Anthropic.
+
+    Lazily imports ``anthropic`` so this module imports fine without it. Falls
+    back to the deterministic planner if the SDK or API key is unavailable, or
+    if the model's response can't be parsed — the pipeline must never crash.
+    """
+
+    def __init__(self, fallback: Planner | None = None) -> None:
+        self._fallback = fallback or RuleBasedPlanner()
+
+    def classify(self, ticket: dict[str, Any], retrieved: list[dict[str, Any]]) -> Plan:
+        from culprit.config import settings
+
+        try:
+            import json
+
+            import anthropic
+        except ImportError:
+            return self._fallback.classify(ticket, retrieved)
+
+        if not settings.anthropic_api_key:
+            return self._fallback.classify(ticket, retrieved)
+
+        context = "\n".join(
+            f"- {r['title']} -> team={r['team']}, priority={r['priority']}" for r in retrieved
+        )
+        prompt = (
+            "You triage IT support tickets. Given the ticket and similar resolved "
+            "tickets, choose the owning team and a priority "
+            f"({', '.join(p for p, _ in _PRIORITY_RULES)}).\n\n"
+            f"Ticket: {ticket.get('title', '')}\n{ticket.get('description', '')}\n\n"
+            f"Similar resolved tickets:\n{context or '(none)'}\n\n"
+            'Respond with JSON only: {"team": str, "priority": str, "rationale": str}'
+        )
+        try:
+            client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+            msg = client.messages.create(
+                model=settings.agent_model,
+                max_tokens=300,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            data = json.loads(msg.content[0].text)
+            return Plan(
+                team=data.get("team"),
+                priority=data.get("priority"),
+                planned_actions=["set_team", "set_priority"],
+                rationale=data.get("rationale", ""),
+            )
+        except Exception:
+            return self._fallback.classify(ticket, retrieved)
+
+
+def default_planner(use_llm: bool = False) -> Planner:
+    """Return the planner: deterministic by default, LLM-backed if requested."""
+    return LLMPlanner() if use_llm else RuleBasedPlanner()
 
 
 def plan_node(state: AgentState, planner: Planner | None = None) -> dict[str, Any]:
