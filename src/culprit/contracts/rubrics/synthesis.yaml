@@ -1,0 +1,33 @@
+# Rubric for the SYNTHESIS step of the JSM triage agent.
+step_type: synthesis
+version: 1
+description: >
+  Produce the final human-readable triage summary. The summary must be grounded
+  in the ticket and the agent's own actions, assert no fields that were never
+  retrieved or set, and be consistent with what was actually done.
+reference_based: false
+
+criteria:
+  - id: grounded
+    description: >
+      Every factual claim in the summary traces to the ticket, the retrieved
+      context, or an action the agent took. No invented fields or values.
+    weight: 0.5
+  - id: consistent_with_actions
+    description: >
+      The summary's stated team/priority match the values actually set by the
+      tool calls (no drift between what was done and what was reported).
+    weight: 0.3
+  - id: complete
+    description: >
+      The summary covers the key outcome (team, priority, rationale) without
+      omitting a decision that was made.
+    weight: 0.2
+
+failure_categories:
+  - id: hallucinated_grounding
+    description: The summary asserts a field or value that was never retrieved or set.
+  - id: inconsistent_with_actions
+    description: The summary reports a team/priority different from what was set.
+  - id: omitted_key_field
+    description: The summary omits a key decision that was made.
