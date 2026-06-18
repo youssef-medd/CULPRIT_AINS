@@ -103,7 +103,7 @@ The hardest question a judge can ask is *"how do you know your judge is right?"*
 
 ### 4.8 Schemas
 
-Trajectory, evaluation, and attribution are defined as OTel-GenAI-aligned JSON Schemas, and the behavioral contracts live alongside them, under `src/culprit/contracts/`. The attribution payload — the system's primary output — looks like:
+Trajectory, evaluation, and attribution are defined as OTel-GenAI-aligned typed schemas (pydantic models) under `src/culprit/schemas/`, and the behavioral contracts (rubrics + ordering invariants) live under `src/culprit/contracts/`. The attribution payload — the system's primary output — looks like:
 
 ```json
 {
@@ -212,55 +212,71 @@ Naming where the system can break is part of the engineering, not an afterthough
 ## 10. Repository layout
 
 ```
-culprit/
+CULPRIT_AINS/
 ├── README.md
 ├── LICENSE
-├── pyproject.toml                # packaging + dependencies
-├── docs/
-│   └── images/                   # architecture, data-flow, runtime-sequence diagrams
+├── pyproject.toml                  # packaging + core/optional dependency groups
+├── .env.example                    # ANTHROPIC_API_KEY, models, tau, paths
+├── docs/images/                    # architecture, data-flow, runtime-sequence diagrams
 ├── src/culprit/
-│   ├── agent/                    # subject under test: JSM triage agent
-│   ├── recorder/                 # E1 trajectory capture (OTel-aligned)
-│   ├── tagger/                   # step typing
-│   ├── monitor/                  # Shadow Contract Monitor (runtime-verification state machine)
-│   ├── evaluation/               # E2 judges + E6 self-consistency confidence
-│   ├── attribution/              # E3 decisive-step + counterfactual replay
-│   ├── verdict/                  # E4 human-readable report
-│   ├── drift/                    # E5 drift monitor
-│   ├── meta_eval/                # E7 fault injection + mutation engine (fuzzing) + metrics
-│   └── contracts/                # behavioral contracts + JSON schemas + invariants (the eval spec)
+│   ├── config.py                   # env-driven settings singleton
+│   ├── run.py                      # end-to-end pipeline + CLI (python -m culprit.run)
+│   ├── __main__.py                 # python -m culprit
+│   ├── schemas/                    # OTel-GenAI-aligned types: trajectory / evaluation / attribution
+│   ├── contracts/                  # the eval spec: rubrics/ + invariants/ + task_success.yaml + loader
+│   ├── agent/                      # subject under test: JSM triage graph
+│   │   ├── graph.py                #   retrieve → plan → act → synthesize (LangGraph)
+│   │   ├── nodes/                  #   one file per node (pluggable rule/LLM brains)
+│   │   └── tools/                  #   mocked JSM tools + capability registry
+│   ├── recorder/                   # E1: callback capture → trajectory_builder → SQLite store
+│   ├── tagger/                     # step typing (rules + cheap-LLM fallback)
+│   ├── monitor/                    # E5 (online): Shadow Contract Monitor (compiler + state machine)
+│   ├── evaluation/                 # E2/E6: judges/ (+ LLM & heuristic backends), confidence, debate, prompts/
+│   ├── attribution/                # E3: selector + counterfactual + crs + engine
+│   ├── verdict/                    # E4: renderer + Jinja2 templates/
+│   ├── drift/                      # E5 (batch): PSI/KL detector
+│   └── meta_eval/                  # E7: injector + mutation_engine + scorer + report (python -m culprit.meta_eval)
 ├── data/
-│   ├── synthetic/                # sample tickets + trajectories (fixtures)
-│   └── outputs/                  # sample verdicts (target output shape)
-├── ui/                           # Streamlit interactive DAG dashboard (explainability layer)
-└── tests/
+│   ├── synthetic/                  # tickets.jsonl + recorded trajectories (fixtures)
+│   └── outputs/                    # generated verdicts (JSON + Markdown) and meta-eval report
+├── ui/                             # Streamlit DAG dashboard (decoupled over the core's JSON)
+│   ├── app.py
+│   └── components/                 # dag / verdict_panel / meta_eval_tab / drift_tab
+└── tests/                          # pytest suite mirroring src/culprit (56 tests)
 ```
 
 ## 11. Setup & usage
 
-**Requirements:** Python 3.11+, an LLM API key.
+**Requirements:** Python 3.11+. An LLM API key is **optional** — every LLM-backed component (agent planner, judges, summarizer, tagger) ships with a deterministic fallback, so the full pipeline runs and the test suite passes with no key. That makes runs reproducible for fixtures, CI, and demos; set a key to switch to a real model.
 
 ```bash
 git clone https://github.com/youssef-medd/CULPRIT_AINS.git
 cd CULPRIT_AINS
 python -m venv .venv
-source .venv/bin/activate            # Windows: .venv\Scripts\activate
-pip install -e .
-export ANTHROPIC_API_KEY=sk-...       # or the provider key configured in src/culprit/config
+source .venv/bin/activate                 # Windows: .venv\Scripts\activate
+
+pip install -e .                          # core — runs the whole pipeline deterministically
+pip install -e ".[agent,ui,dev]"          # optional — real LLM agent/judges, dashboard, tests
+
+# Optional: switch the agent + judges from the deterministic stand-in to a real model.
+export ANTHROPIC_API_KEY=sk-...
 ```
 
 ```bash
-# Run the subject agent + the full evaluation pipeline on the synthetic ticket set
+# Subject agent + full evaluation pipeline over the synthetic tickets
 python -m culprit.run --tickets data/synthetic/tickets.jsonl
 
-# Launch the explainability dashboard (interactive DAG)
+# "Judging the judges": inject + fuzz labeled faults, report attribution accuracy / P / R / F1
+python -m culprit.meta_eval
+
+# Interactive DAG dashboard (needs the [ui] extra)
 streamlit run ui/app.py
 
-# Reproduce "judging the judges": inject + fuzz labeled faults and report attribution accuracy
-python -m culprit.meta_eval
+# Test suite
+pytest
 ```
 
-Each command writes structured verdicts to `data/outputs/`; the dashboard renders them as an interactive trajectory graph with the decisive node highlighted.
+Each command writes structured verdicts (JSON) and human-readable reports (Markdown) to `data/outputs/`; the dashboard renders the trajectory as an interactive graph with the decisive node highlighted.
 
 ## 12. Technical stack (chosen, justified)
 
@@ -269,7 +285,7 @@ Each command writes structured verdicts to `data/outputs/`; the dashboard render
 - **Judges:** LLM-as-judge, rubric-anchored and reference-based, with randomized option order and self-consistency sampling.
 - **Capture:** framework callbacks emitting OpenTelemetry GenAI-aligned spans.
 - **Storage:** SQLite for runs (Postgres at scale).
-- **UI (decoupled):** an interactive **DAG dashboard** (timeline → graph; red decisive node; click → contract / evidence / confidence / validated repair; meta-eval + drift tabs), built with **Streamlit + a graph component** (`streamlit-agraph` / `pyvis` / Plotly). It is a presentation layer over the core's OTel-aligned JSON — the evaluation engine never depends on the web framework, so the UI is swappable without touching the core.
+- **UI (decoupled):** an interactive **DAG dashboard** (graph view; red decisive node; expandable evidence / counterfactual / validated repair; meta-eval + drift tabs), built with **Streamlit** using its built-in Graphviz rendering (no extra graph dependency). It is a presentation layer over the core's OTel-aligned JSON — the evaluation engine never depends on the web framework, so the UI is swappable without touching the core.
 
 ## 13. Research foundation
 
@@ -287,6 +303,8 @@ Each command writes structured verdicts to `data/outputs/`; the dashboard render
 
 ## 14. Status & limitations
 
-Honest open risks: counterfactual replay is the highest-risk component and is designed to **degrade gracefully** to correlation-based attribution if no replay flips the outcome; reported accuracy is on a **deliberately constrained** domain (a single JSM triage agent), which is the point of the scoping decision — general-purpose trace debugging sits at ~11–14%, and Culprit trades breadth for measurable accuracy.
+**Implementation status.** All components above are implemented, wired into one pipeline (`python -m culprit.run`), and covered by a passing `pytest` suite. The agent, judges, summarizer, and tagger run on a real LLM when `ANTHROPIC_API_KEY` is set, and on a deterministic stand-in otherwise — so the system is fully runnable and reproducible with no key.
+
+Honest open risks: counterfactual replay is the highest-risk component and is designed to **degrade gracefully** to correlation-based attribution if no replay flips the outcome. The meta-evaluator's headline numbers on the bundled corpus are produced by the **deterministic heuristic judge backend over a small, by-construction-labeled set** — they show the attribution and meta-evaluation machinery is correct end-to-end, *not* that the LLM judges hit that accuracy in the wild (run with a key and a noisier corpus for the realistic regime). Reported accuracy is on a **deliberately constrained** domain (a single JSM triage agent), which is the point of the scoping decision — general-purpose trace debugging sits at ~11–14%, and Culprit trades breadth for measurable accuracy.
 
 **License:** MIT (see [`LICENSE`](LICENSE)).
