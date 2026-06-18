@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment / secrets
+.env
+.env.local
+*.key
+
+# Databases / generated artifacts
+*.db
+*.sqlite
+*.sqlite3
+data/outputs/*
+!data/outputs/.gitkeep
+data/synthetic/trajectories/*
+!data/synthetic/trajectories/.gitkeep
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
