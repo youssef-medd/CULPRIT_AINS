@@ -1,0 +1,23 @@
+/* Culprit dashboard styling. The decisive node in the DAG is rendered red by
+   Graphviz; this adds a subtle pulse to any element tagged .decisive and tunes
+   the overall look. */
+
+@keyframes culprit-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.6); }
+  70%  { box-shadow: 0 0 0 10px rgba(229, 62, 62, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
+}
+
+.decisive {
+  border: 2px solid #e53e3e;
+  border-radius: 8px;
+  animation: culprit-pulse 1.8s infinite;
+}
+
+.block-container {
+  padding-top: 2rem;
+}
+
+div[data-testid="stMetricValue"] {
+  font-size: 1.4rem;
+}
