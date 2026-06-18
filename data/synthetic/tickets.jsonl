@@ -1,0 +1,7 @@
+{"id": "JSM-101", "title": "VPN keeps dropping, cannot work", "description": "Since this morning my VPN disconnects every few minutes and I cannot reach internal sites. This is blocking my work.", "product_area": "networking", "reporter": "alice"}
+{"id": "JSM-102", "title": "Office printer jams on every duplex job", "description": "The 3rd floor printer jams whenever I print double-sided. Single-sided is fine.", "product_area": "printing", "reporter": "bob"}
+{"id": "JSM-103", "title": "Cannot send email to external addresses", "description": "Internal email works but anything to an external domain bounces back immediately.", "product_area": "email", "reporter": "carol"}
+{"id": "JSM-104", "title": "Locked out of my account after MFA reset", "description": "I reset my MFA device yesterday and now I am completely locked out and urgent, I have a deadline.", "product_area": "identity", "reporter": "dan"}
+{"id": "JSM-105", "title": "CRM throws a 500 error on save", "description": "Saving any record in the CRM app returns a 500 error. Export also does nothing.", "product_area": "software", "reporter": "erin"}
+{"id": "JSM-106", "title": "Wifi is slow in the east building", "description": "Connection is intermittent and slow in the east building conference rooms.", "product_area": "networking", "reporter": "frank"}
+{"id": "JSM-107", "title": "Need help, something is broken", "description": "I cannot get my work done, please help. Not sure which system is at fault.", "product_area": null, "reporter": "grace"}
