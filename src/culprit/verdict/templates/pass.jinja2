@@ -1,0 +1,8 @@
+# Culprit Verdict — {{ a.run_id }}
+
+**Result:** ✅ PASS &nbsp;|&nbsp; **Confidence:** {{ "%.2f"|format(a.confidence) }}
+
+{{ a.why or "The run succeeded at the triage task." }}
+
+No decisive failure to attribute. This report is generated for completeness —
+every run receives a verdict, including passing ones.
