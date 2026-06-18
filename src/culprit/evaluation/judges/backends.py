@@ -88,6 +88,10 @@ class LLMJudgeBackend:
         except Exception:
             return RawJudgment(rationale="unparseable judge response")
 
+    def judge_freeform(self, prompt: str, temperature: float = 0.3) -> RawJudgment:
+        """Judge a pre-built prompt (used by the debate adjudicator)."""
+        return self._call(prompt, temperature)
+
     def judge_component(
         self, request: ComponentJudgeRequest, temperature: float = 0.7
     ) -> RawJudgment:
