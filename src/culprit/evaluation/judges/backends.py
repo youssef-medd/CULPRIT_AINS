@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import random
+from collections import Counter
 from string import Template
 from typing import Any
 
@@ -196,7 +197,9 @@ class HeuristicJudgeBackend:
         )
 
     def _planning(self, request: ComponentJudgeRequest) -> RawJudgment:
-        plan = request.context.get("plan") or {}
+        ctx = request.context
+        plan = ctx.get("plan") or {}
+        retrieved = ctx.get("retrieved") or []
         if not plan.get("team"):
             return RawJudgment(
                 verdict=Verdict.FAIL,
@@ -212,6 +215,22 @@ class HeuristicJudgeBackend:
                 failure_category="wrong_priority",
                 rationale="Plan did not set a priority.",
             )
+        # The plan should be consistent with the retrieved context it was given:
+        # routing against the majority team of the retrieved tickets.
+        teams = [r.get("team") for r in retrieved if r.get("team")]
+        if teams:
+            majority = Counter(teams).most_common(1)[0][0]
+            if plan["team"] != majority:
+                return RawJudgment(
+                    verdict=Verdict.FAIL,
+                    score=0.3,
+                    failure_category="plan_ignores_context",
+                    rationale=(
+                        f"Plan routes to {plan['team']} but the retrieved context points "
+                        f"to {majority}."
+                    ),
+                    evidence=[Evidence(field="plan.team", expected=majority, actual=plan["team"])],
+                )
         return RawJudgment(
             verdict=Verdict.PASS,
             score=0.85,
@@ -290,6 +309,16 @@ class HeuristicJudgeBackend:
                 evidence=[
                     Evidence(field="outputs.team", expected=expected_team, actual=outputs.get("team"))
                 ],
+            )
+        # The summary must be consistent with the team actually set (task contract).
+        team = outputs.get("team")
+        summary = (outputs.get("summary") or "").lower()
+        if team and summary and team.lower() not in summary:
+            return RawJudgment(
+                verdict=Verdict.FAIL,
+                score=0.3,
+                rationale="The summary is inconsistent with the team that was set.",
+                evidence=[Evidence(field="outputs.summary", expected=team, actual="(team not mentioned)")],
             )
         return RawJudgment(
             verdict=Verdict.PASS, score=0.9, rationale="Required outputs present and routing consistent."
