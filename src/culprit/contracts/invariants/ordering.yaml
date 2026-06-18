@@ -1,0 +1,50 @@
+# Structural ordering invariants for the JSM triage agent.
+# The Shadow Contract Monitor (Phase 4) compiles these into a runtime state
+# machine that runs online, in parallel with the agent. They check the SEQUENCE
+# of actions and capability, never exact text, so legitimately different valid
+# paths do not trip the monitor while genuine structural faults do.
+version: 1
+
+invariants:
+  - id: retrieval_precedes_planning
+    description: A retrieval step must occur before planning, so the plan is grounded.
+    kind: precedes
+    before: retrieval
+    after: planning
+
+  - id: planning_precedes_tool_execution
+    description: Planning must occur before any tool is executed.
+    kind: precedes
+    before: planning
+    after: tool_execution
+
+  - id: tool_execution_precedes_synthesis
+    description: Actions must be executed before the final summary is synthesized.
+    kind: precedes
+    before: tool_execution
+    after: synthesis
+
+  - id: set_team_before_set_priority
+    description: The routing team must be set before the priority is set.
+    kind: tool_order
+    before_tool: set_team
+    after_tool: set_priority
+
+  - id: set_team_tool_capable
+    description: Routing must be performed by a tool capable of setting the team.
+    kind: tool_capability
+    tool: set_team
+    capability: route_team
+
+  - id: set_priority_tool_capable
+    description: Priority must be set by a tool capable of setting priority.
+    kind: tool_capability
+    tool: set_priority
+    capability: set_priority
+
+  - id: product_area_retrieved_before_planning
+    description: The product_area used for routing must be retrieved before planning uses it.
+    kind: field_available_before
+    field: product_area
+    before: retrieval
+    after: planning
