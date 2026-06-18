@@ -1,0 +1,35 @@
+# Rubric for the RETRIEVAL step of the JSM triage agent.
+# Scored by the retrieval component judge against focused context.
+step_type: retrieval
+version: 1
+description: >
+  Retrieve similar prior tickets to ground the downstream plan. Retrieval must
+  be scoped to the ticket's product area and return tickets actually relevant
+  to the request, since the planner trusts whatever comes back.
+reference_based: false
+
+criteria:
+  - id: relevance
+    description: >
+      Returned tickets are topically relevant to the ticket's product_area and
+      request type (e.g. a VPN/networking ticket retrieves networking tickets,
+      not printer or email tickets).
+    weight: 0.5
+  - id: filter_applied
+    description: >
+      The retrieval call populates the product_area (or equivalent scoping)
+      filter rather than querying unfiltered.
+    weight: 0.3
+  - id: sufficiency
+    description: >
+      Enough relevant context is returned to support routing; an empty or
+      near-empty result for a well-specified ticket is insufficient.
+    weight: 0.2
+
+failure_categories:
+  - id: irrelevant_context_retrieved
+    description: Returned tickets do not match the ticket's product area / request type.
+  - id: no_filter_applied
+    description: The scoping filter (e.g. product_area) was omitted, broadening results.
+  - id: insufficient_context_retrieved
+    description: Too little relevant context was returned to support routing.
