@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "culprit-ui",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8753", "--directory", "ui"],
+      "port": 8753
+    },
+    {
+      "name": "culprit-streamlit",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "ui/app.py", "--server.headless", "true", "--server.port", "8502", "--browser.gatherUsageStats", "false"],
+      "port": 8502
+    }
+  ]
+}
