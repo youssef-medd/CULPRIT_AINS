@@ -216,7 +216,7 @@ CULPRIT_AINS/
 ├── README.md
 ├── LICENSE
 ├── pyproject.toml                  # packaging + core/optional dependency groups
-├── .env.example                    # ANTHROPIC_API_KEY, models, tau, paths
+├── .env.example                    # NVIDIA_API_KEY, models, tau, paths
 ├── docs/images/                    # architecture, data-flow, runtime-sequence diagrams
 ├── src/culprit/
 │   ├── config.py                   # env-driven settings singleton
@@ -259,7 +259,7 @@ pip install -e .                          # core — runs the whole pipeline det
 pip install -e ".[agent,ui,dev]"          # optional — real LLM agent/judges, dashboard, tests
 
 # Optional: switch the agent + judges from the deterministic stand-in to a real model.
-export ANTHROPIC_API_KEY=sk-...
+export NVIDIA_API_KEY=nvapi-...
 ```
 
 ```bash
@@ -303,7 +303,7 @@ Each command writes structured verdicts (JSON) and human-readable reports (Markd
 
 ## 14. Status & limitations
 
-**Implementation status.** All components above are implemented, wired into one pipeline (`python -m culprit.run`), and covered by a passing `pytest` suite. The agent, judges, summarizer, and tagger run on a real LLM when `ANTHROPIC_API_KEY` is set, and on a deterministic stand-in otherwise — so the system is fully runnable and reproducible with no key.
+**Implementation status.** All components above are implemented, wired into one pipeline (`python -m culprit.run`), and covered by a passing `pytest` suite. The agent, judges, summarizer, and tagger run on a real LLM when `NVIDIA_API_KEY` is set, and on a deterministic stand-in otherwise — so the system is fully runnable and reproducible with no key.
 
 Honest open risks: counterfactual replay is the highest-risk component and is designed to **degrade gracefully** to correlation-based attribution if no replay flips the outcome. The meta-evaluator's headline numbers on the bundled corpus are produced by the **deterministic heuristic judge backend over a small, by-construction-labeled set** — they show the attribution and meta-evaluation machinery is correct end-to-end, *not* that the LLM judges hit that accuracy in the wild (run with a key and a noisier corpus for the realistic regime). Reported accuracy is on a **deliberately constrained** domain (a single JSM triage agent), which is the point of the scoping decision — general-purpose trace debugging sits at ~11–14%, and Culprit trades breadth for measurable accuracy.
 
