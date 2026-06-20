@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     """Runtime configuration for the whole pipeline.
 
     Field names map to ``CULPRIT_<UPPER>`` environment variables (plus the
-    bare ``ANTHROPIC_API_KEY``). Relative paths are resolved against the repo
+    bare ``NVIDIA_API_KEY``). Relative paths are resolved against the repo
     root so commands behave the same regardless of the working directory.
     """
 
@@ -34,13 +34,14 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # --- LLM provider ---
-    anthropic_api_key: str | None = Field(default=None, alias="ANTHROPIC_API_KEY")
+    # --- LLM provider (NVIDIA NIM, OpenAI-compatible API) ---
+    nvidia_api_key: str | None = Field(default=None, alias="NVIDIA_API_KEY")
+    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
 
     # --- Models ---
-    judge_model: str = "claude-opus-4-8"
-    agent_model: str = "claude-sonnet-4-6"
-    tagger_model: str = "claude-haiku-4-5-20251001"
+    judge_model: str = "deepseek-ai/deepseek-v4-pro"
+    agent_model: str = "deepseek-ai/deepseek-v4-pro"
+    tagger_model: str = "deepseek-ai/deepseek-v4-pro"
 
     # --- Evaluation knobs ---
     tau: float = Field(default=0.7, ge=0.0, le=1.0)
