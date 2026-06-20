@@ -8,8 +8,9 @@ The planner is pluggable behind the ``Planner`` protocol:
   fixtures, replay, and tests. Because it routes off the *retrieved* tickets, a
   bad retrieval cascades into a wrong team here — the exact failure the README
   describes.
-* ``LLMPlanner`` — calls Anthropic for genuinely non-deterministic behavior.
-  Imported lazily so this module never hard-depends on ``anthropic``.
+* ``LLMPlanner`` — calls NVIDIA (OpenAI-compatible API) for genuinely
+  non-deterministic behavior. Imported lazily so this module never hard-depends
+  on ``openai``.
 """
 
 from __future__ import annotations
@@ -77,9 +78,9 @@ class RuleBasedPlanner:
 
 
 class LLMPlanner:
-    """Non-deterministic planner backed by Anthropic.
+    """Non-deterministic planner backed by NVIDIA (OpenAI-compatible API).
 
-    Lazily imports ``anthropic`` so this module imports fine without it. Falls
+    Lazily imports ``openai`` so this module imports fine without it. Falls
     back to the deterministic planner if the SDK or API key is unavailable, or
     if the model's response can't be parsed — the pipeline must never crash.
     """
@@ -93,11 +94,11 @@ class LLMPlanner:
         try:
             import json
 
-            import anthropic
+            from openai import OpenAI
         except ImportError:
             return self._fallback.classify(ticket, retrieved)
 
-        if not settings.anthropic_api_key:
+        if not settings.nvidia_api_key:
             return self._fallback.classify(ticket, retrieved)
 
         context = "\n".join(
@@ -112,13 +113,14 @@ class LLMPlanner:
             'Respond with JSON only: {"team": str, "priority": str, "rationale": str}'
         )
         try:
-            client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-            msg = client.messages.create(
+            client = OpenAI(base_url=settings.nvidia_base_url, api_key=settings.nvidia_api_key)
+            completion = client.chat.completions.create(
                 model=settings.agent_model,
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}],
+                extra_body={"chat_template_kwargs": {"thinking": False}},
             )
-            data = json.loads(msg.content[0].text)
+            data = json.loads(completion.choices[0].message.content)
             return Plan(
                 team=data.get("team"),
                 priority=data.get("priority"),
