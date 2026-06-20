@@ -1,7 +1,7 @@
 """Cheap-LLM fallback for step typing.
 
 Only invoked for steps the rules left ``UNKNOWN``. Uses the cheap tagger model
-and lazily imports ``anthropic`` so this module imports without it. On any
+and lazily imports ``openai`` so this module imports without it. On any
 problem (no SDK, no key, unparseable reply) it returns ``UNKNOWN`` rather than
 guessing — a mislabel is worse than an honest unknown.
 """
@@ -16,13 +16,13 @@ _VALID = {t.value for t in StepType}
 def llm_tag_step(step: Step, model: str | None = None) -> StepType:
     """Classify a single step into a ``StepType`` via the cheap model."""
     try:
-        import anthropic
+        from openai import OpenAI
     except ImportError:
         return StepType.UNKNOWN
 
     from culprit.config import settings
 
-    if not settings.anthropic_api_key:
+    if not settings.nvidia_api_key:
         return StepType.UNKNOWN
 
     tool = step.action.tool_name if step.action else None
@@ -35,13 +35,14 @@ def llm_tag_step(step: Step, model: str | None = None) -> StepType:
         "Answer with the single type word only."
     )
     try:
-        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-        msg = client.messages.create(
+        client = OpenAI(base_url=settings.nvidia_base_url, api_key=settings.nvidia_api_key)
+        completion = client.chat.completions.create(
             model=model or settings.tagger_model,
             max_tokens=10,
             messages=[{"role": "user", "content": prompt}],
+            extra_body={"chat_template_kwargs": {"thinking": False}},
         )
-        answer = msg.content[0].text.strip().lower()
+        answer = (completion.choices[0].message.content or "").strip().lower()
         return StepType(answer) if answer in _VALID else StepType.UNKNOWN
     except Exception:
         return StepType.UNKNOWN
