@@ -68,7 +68,6 @@ class LLMJudgeBackend:
                 max_tokens=600,
                 temperature=temperature,
                 messages=[{"role": "user", "content": prompt}],
-                extra_body={"chat_template_kwargs": {"thinking": False}},
             )
             return self._parse(completion.choices[0].message.content)
         except Exception as exc:  # reliability: never crash the pipeline
