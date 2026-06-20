@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import sqlite3
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from culprit.config import settings
@@ -57,7 +57,7 @@ class TrajectoryStore:
                     trajectory.run_id,
                     trajectory.ticket_id,
                     trajectory.final_status.value,
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
                     trajectory.model_dump_json(),
                 ),
             )
@@ -81,4 +81,4 @@ class TrajectoryStore:
     def count(self) -> int:
         """Return the number of stored trajectories."""
         with closing(self._connect()) as conn:
-            return conn.execute("SELECT COUNT(*) FROM trajectories").fetchone()[0]
+            return int(conn.execute("SELECT COUNT(*) FROM trajectories").fetchone()[0])

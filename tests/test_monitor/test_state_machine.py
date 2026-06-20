@@ -17,7 +17,8 @@ def _bad() -> Trajectory:
         steps=[
             Step(step_id="s0", step_index=0, span_name="plan", step_type=StepType.PLANNING),
             Step(step_id="s1", step_index=1, span_name="retrieve", step_type=StepType.RETRIEVAL,
-                 action=Action(tool_name="search_tickets", arguments={"product_area": "networking"})),
+                 action=Action(tool_name="search_tickets",
+                               arguments={"product_area": "networking"})),
             Step(step_id="s2", step_index=2, span_name="act", step_type=StepType.TOOL_EXECUTION,
                  action=Action(tool_name="set_priority", arguments={"priority": "High"})),
             Step(step_id="s3", step_index=3, span_name="act", step_type=StepType.TOOL_EXECUTION,

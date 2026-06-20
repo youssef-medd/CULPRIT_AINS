@@ -47,7 +47,10 @@ class ShadowMonitor:
         """The earliest violation by step index — a high-precision decisive hint."""
         if not self.alerts:
             return None
-        return min(self.alerts, key=lambda a: (a.step_index if a.step_index is not None else 1 << 30))
+        return min(
+            self.alerts,
+            key=lambda a: (a.step_index if a.step_index is not None else 1 << 30),
+        )
 
 
 def build_monitor(

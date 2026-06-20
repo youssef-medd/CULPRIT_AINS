@@ -1,6 +1,6 @@
 """Tests for the rule-based step tagger."""
 
-from culprit.schemas.trajectory import Action, ContextSnapshot, Step, StepType, Trajectory
+from culprit.schemas.trajectory import Action, Step, StepType, Trajectory
 from culprit.tagger import tag_step_type, tag_trajectory
 
 

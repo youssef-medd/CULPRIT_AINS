@@ -30,7 +30,7 @@ from culprit.agent.state import AgentState, Ticket
 def build_graph(
     planner: Planner | None = None,
     summarizer: Summarizer | None = None,
-):
+) -> Any:
     """Compile the triage graph with the given (or default) brains."""
     planner = planner or default_planner()
     summarizer = summarizer or default_summarizer()
@@ -59,4 +59,5 @@ def run_triage(
     normalized = Ticket.model_validate(ticket).model_dump()
     app = build_graph(planner=planner, summarizer=summarizer)
     initial: AgentState = {"ticket": normalized, "tool_calls": [], "jsm": {"comments": []}}
-    return app.invoke(initial)
+    result: AgentState = app.invoke(initial)
+    return result

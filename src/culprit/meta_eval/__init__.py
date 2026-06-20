@@ -11,6 +11,7 @@ attribution over the corpus, and measures how often it attributes correctly::
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from culprit.config import REPO_ROOT
 from culprit.meta_eval.injector import FAULTS, FaultLabel, InjectedCase, inject, inject_all
@@ -22,7 +23,7 @@ _DEFAULT_TICKETS = REPO_ROOT / "data" / "synthetic" / "tickets.jsonl"
 
 
 def run_meta_eval(
-    tickets: list[dict] | None = None,
+    tickets: list[dict[str, Any]] | None = None,
     seed: int = 0,
     output_dir: Path | None = None,
     write: bool = True,

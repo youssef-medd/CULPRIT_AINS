@@ -17,7 +17,7 @@ Node-level latency from the callback is attached when available.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from culprit.schemas.trajectory import (
@@ -34,7 +34,7 @@ _ACTION_TOOLS = ("set_team", "set_priority", "add_comment")
 
 def new_run_id() -> str:
     """Generate a readable, unique run id like ``run_20260618_143012_a1b2``."""
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    stamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     return f"run_{stamp}_{uuid.uuid4().hex[:4]}"
 
 

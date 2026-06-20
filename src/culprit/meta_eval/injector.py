@@ -42,8 +42,14 @@ class InjectedCase(BaseModel):
 
 # A mix of off-topic resolved tickets used to simulate unfiltered retrieval.
 _MIXED_RESULTS: list[dict[str, Any]] = [
-    {"id": "T-2001", "title": "printer jam", "product_area": "printing", "team": "IT Hardware Support", "priority": "Low", "score": 0.6},
-    {"id": "T-3001", "title": "email bounce", "product_area": "email", "team": "Messaging & Collaboration", "priority": "High", "score": 0.55},
+    {
+        "id": "T-2001", "title": "printer jam", "product_area": "printing",
+        "team": "IT Hardware Support", "priority": "Low", "score": 0.6,
+    },
+    {
+        "id": "T-3001", "title": "email bounce", "product_area": "email",
+        "team": "Messaging & Collaboration", "priority": "High", "score": 0.55,
+    },
 ]
 
 
@@ -61,14 +67,14 @@ def _tool_steps(traj: Trajectory) -> list[Step]:
 def _ticket_title(traj: Trajectory) -> str:
     r = _step_of(traj, StepType.RETRIEVAL)
     if r:
-        return r.context_snapshot.inputs.get("ticket", {}).get("title", "the ticket")
+        return str(r.context_snapshot.inputs.get("ticket", {}).get("title", "the ticket"))
     return "the ticket"
 
 
 def _current_priority(traj: Trajectory) -> str:
     p = _step_of(traj, StepType.PLANNING)
     if p and isinstance(p.result, dict) and p.result.get("priority"):
-        return p.result["priority"]
+        return str(p.result["priority"])
     return "Medium"
 
 
@@ -138,6 +144,7 @@ def inject_retrieval_no_filter(traj: Trajectory) -> tuple[Trajectory, FaultLabel
     )
     _set_routing(t, wrong_team, _current_priority(t))
     r = _step_of(t, StepType.RETRIEVAL)
+    assert r is not None
     return t, FaultLabel(
         fault_type="retrieval_no_filter",
         step_id=r.step_id,
@@ -151,8 +158,11 @@ def inject_planning_wrong_team(traj: Trajectory) -> tuple[Trajectory, FaultLabel
     t = traj.model_copy(deep=True)
     plan = _step_of(t, StepType.PLANNING)
     good_team = plan.result.get("team") if plan and isinstance(plan.result, dict) else None
-    wrong_team = "IT Hardware Support" if good_team != "IT Hardware Support" else "Application Support"
+    wrong_team = (
+        "IT Hardware Support" if good_team != "IT Hardware Support" else "Application Support"
+    )
     _set_routing(t, wrong_team, _current_priority(t))
+    assert plan is not None
     return t, FaultLabel(
         fault_type="planning_wrong_team",
         step_id=plan.step_id,
@@ -167,8 +177,11 @@ def inject_tool_missing_arg(traj: Trajectory) -> tuple[Trajectory, FaultLabel]:
     set_team_step = next(
         (s for s in _tool_steps(t) if s.action and s.action.tool_name == "set_team"), None
     )
+    assert set_team_step is not None and set_team_step.action is not None
     set_team_step.action.arguments["team"] = ""
-    set_team_step.result = {"status": "error", "reason": "missing_required_argument", "field": "team"}
+    set_team_step.result = {
+        "status": "error", "reason": "missing_required_argument", "field": "team",
+    }
     set_team_step.status = StepStatus.ERROR
 
     syn = _step_of(t, StepType.SYNTHESIS)
@@ -188,8 +201,11 @@ def inject_synthesis_inconsistent(traj: Trajectory) -> tuple[Trajectory, FaultLa
     """Routing is correct but the summary asserts a different team."""
     t = traj.model_copy(deep=True)
     syn = _step_of(t, StepType.SYNTHESIS)
+    assert syn is not None
     correct_team = syn.context_snapshot.inputs.get("jsm", {}).get("team")
-    wrong_team = "IT Hardware Support" if correct_team != "IT Hardware Support" else "Application Support"
+    wrong_team = (
+        "IT Hardware Support" if correct_team != "IT Hardware Support" else "Application Support"
+    )
     syn.result = f'Ticket "{_ticket_title(t)}" was routed to {wrong_team}.'
     return t, FaultLabel(
         fault_type="synthesis_inconsistent",

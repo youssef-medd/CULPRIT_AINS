@@ -9,7 +9,7 @@ stays small and robust to callback-shape differences across versions.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -40,14 +40,14 @@ class TrajectoryRecorder(BaseCallbackHandler):
         self._open[run_id] = {
             "node": node,
             "step": (metadata or {}).get("langgraph_step"),
-            "started_at": datetime.now(timezone.utc),
+            "started_at": datetime.now(UTC),
         }
 
     def on_chain_end(self, outputs: Any, *, run_id: UUID, **kwargs: Any) -> None:
         event = self._open.pop(run_id, None)
         if event is None:
             return
-        ended = datetime.now(timezone.utc)
+        ended = datetime.now(UTC)
         event["ended_at"] = ended
         event["latency_ms"] = (ended - event["started_at"]).total_seconds() * 1000.0
         self.node_events.append(event)

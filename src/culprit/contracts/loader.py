@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError
@@ -140,7 +140,10 @@ def _read_yaml(path: Path) -> dict[str, Any]:
     return data
 
 
-def _validate(model: type[BaseModel], data: dict[str, Any], path: Path) -> Any:
+_ModelT = TypeVar("_ModelT", bound=BaseModel)
+
+
+def _validate(model: type[_ModelT], data: dict[str, Any], path: Path) -> _ModelT:
     """Validate ``data`` against ``model``, re-raising as ``ContractError``."""
     try:
         return model.model_validate(data)

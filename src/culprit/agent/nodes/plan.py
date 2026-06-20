@@ -119,7 +119,7 @@ class LLMPlanner:
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}],
             )
-            data = json.loads(completion.choices[0].message.content)
+            data = json.loads(completion.choices[0].message.content or "{}")
             return Plan(
                 team=data.get("team"),
                 priority=data.get("priority"),

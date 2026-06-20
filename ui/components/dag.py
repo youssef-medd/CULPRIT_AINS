@@ -50,7 +50,7 @@ def build_dot(trajectory: dict[str, Any], decisive_step_id: str | None) -> str:
             f'  "{sid}" [label="{_node_label(step)}" fillcolor="{fill}" '
             f'fontcolor="{font}" penwidth={pen}];'
         )
-    for a, b in zip(steps, steps[1:]):
+    for a, b in zip(steps, steps[1:], strict=False):
         lines.append(f'  "{a["step_id"]}" -> "{b["step_id"]}";')
     lines.append("}")
     return "\n".join(lines)

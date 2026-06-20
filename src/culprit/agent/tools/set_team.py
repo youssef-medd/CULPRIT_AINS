@@ -12,7 +12,7 @@ from typing import Any
 CAPABILITIES = frozenset({"route_team"})
 
 
-def set_team(record: dict[str, Any], team: str) -> dict[str, Any]:
+def set_team(record: dict[str, Any], team: str | None) -> dict[str, Any]:
     """Set the assigned team on the mock JSM ``record`` and return the result."""
     if not team:
         return {"status": "error", "reason": "missing_required_argument", "field": "team"}

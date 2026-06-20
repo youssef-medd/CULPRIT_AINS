@@ -14,7 +14,7 @@ CAPABILITIES = frozenset({"set_priority"})
 ALLOWED_PRIORITIES = ("Low", "Medium", "High", "Critical")
 
 
-def set_priority(record: dict[str, Any], priority: str) -> dict[str, Any]:
+def set_priority(record: dict[str, Any], priority: str | None) -> dict[str, Any]:
     """Set the priority on the mock JSM ``record`` and return the result."""
     if not priority:
         return {"status": "error", "reason": "missing_required_argument", "field": "priority"}

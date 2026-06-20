@@ -13,6 +13,7 @@ from __future__ import annotations
 import math
 from collections import Counter
 from collections.abc import Callable
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -26,11 +27,11 @@ _PSI_THRESHOLD = 0.2
 # --------------------------------------------------------------------------- #
 # Feature extractors (one behavioral value per trajectory)
 # --------------------------------------------------------------------------- #
-def _final_record(trajectory: Trajectory) -> dict:
+def _final_record(trajectory: Trajectory) -> dict[str, Any]:
     for step in trajectory.ordered():
         record = step.context_snapshot.inputs.get("jsm")
         if record:
-            return record
+            return dict(record)
     return {}
 
 

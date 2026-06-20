@@ -27,7 +27,7 @@ from culprit.evaluation.judges.base import (
 from culprit.schemas.evaluation import Evidence, Verdict
 from culprit.schemas.trajectory import StepStatus, StepType
 
-_EMPTY = (None, "", [], {})
+_EMPTY: tuple[Any, ...] = (None, "", [], {})
 
 
 def _verdict_options(rng: random.Random) -> str:
@@ -69,7 +69,7 @@ class LLMJudgeBackend:
                 temperature=temperature,
                 messages=[{"role": "user", "content": prompt}],
             )
-            return self._parse(completion.choices[0].message.content)
+            return self._parse(completion.choices[0].message.content or "")
         except Exception as exc:  # reliability: never crash the pipeline
             return RawJudgment(rationale=f"judge error: {exc}")
 
@@ -181,7 +181,9 @@ class HeuristicJudgeBackend:
                 score=0.3,
                 failure_category="irrelevant_context_retrieved",
                 rationale=f"Retrieved tickets span {areas}, not the ticket's area '{expected}'.",
-                evidence=[Evidence(field="tool.result", expected=f"{expected} tickets", actual=areas)],
+                evidence=[
+                    Evidence(field="tool.result", expected=f"{expected} tickets", actual=areas)
+                ],
             )
         if not retrieved:
             return RawJudgment(
@@ -257,7 +259,9 @@ class HeuristicJudgeBackend:
                 failure_category="missing_required_argument",
                 rationale="A required tool argument was empty.",
             )
-        return RawJudgment(verdict=Verdict.PASS, score=0.9, rationale="Tool call well-formed and ok.")
+        return RawJudgment(
+            verdict=Verdict.PASS, score=0.9, rationale="Tool call well-formed and ok."
+        )
 
     def _synthesis(self, request: ComponentJudgeRequest) -> RawJudgment:
         ctx = request.context
@@ -281,7 +285,9 @@ class HeuristicJudgeBackend:
                 rationale="Summary omits the priority that was set.",
             )
         return RawJudgment(
-            verdict=Verdict.PASS, score=0.9, rationale="Summary is grounded in the set team/priority."
+            verdict=Verdict.PASS,
+            score=0.9,
+            rationale="Summary is grounded in the set team/priority.",
         )
 
     def judge_end_to_end(
@@ -307,7 +313,11 @@ class HeuristicJudgeBackend:
                     f"{expected_team} for its product area — a silent misroute."
                 ),
                 evidence=[
-                    Evidence(field="outputs.team", expected=expected_team, actual=outputs.get("team"))
+                    Evidence(
+                        field="outputs.team",
+                        expected=expected_team,
+                        actual=outputs.get("team"),
+                    )
                 ],
             )
         # The summary must be consistent with the team actually set (task contract).
@@ -318,10 +328,18 @@ class HeuristicJudgeBackend:
                 verdict=Verdict.FAIL,
                 score=0.3,
                 rationale="The summary is inconsistent with the team that was set.",
-                evidence=[Evidence(field="outputs.summary", expected=team, actual="(team not mentioned)")],
+                evidence=[
+                    Evidence(
+                        field="outputs.summary",
+                        expected=team,
+                        actual="(team not mentioned)",
+                    )
+                ],
             )
         return RawJudgment(
-            verdict=Verdict.PASS, score=0.9, rationale="Required outputs present and routing consistent."
+            verdict=Verdict.PASS,
+            score=0.9,
+            rationale="Required outputs present and routing consistent.",
         )
 
 

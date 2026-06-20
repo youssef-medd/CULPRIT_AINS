@@ -12,6 +12,7 @@ without it so a report is always produced.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -37,7 +38,7 @@ class VerdictRenderer:
         self.templates_dir = templates_dir or TEMPLATES_DIR
         self._env = self._make_env()
 
-    def _make_env(self):
+    def _make_env(self) -> Any:
         try:
             from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -53,8 +54,8 @@ class VerdictRenderer:
     def render_text(self, attribution: Attribution) -> str:
         """Render the Markdown report for an attribution."""
         if self._env is not None:
-            template = self._env.get_template("pass.jinja2" if attribution.is_pass else "fail.jinja2")
-            return template.render(a=attribution)
+            name = "pass.jinja2" if attribution.is_pass else "fail.jinja2"
+            return str(self._env.get_template(name).render(a=attribution))
         return _fallback_text(attribution)
 
     def render(self, attribution: Attribution) -> VerdictReport:
@@ -80,7 +81,10 @@ class VerdictRenderer:
 def _fallback_text(a: Attribution) -> str:
     """Minimal plain-text report used when Jinja2 is unavailable."""
     if a.is_pass:
-        return f"Culprit Verdict — {a.run_id}\nResult: PASS (confidence {a.confidence:.2f})\n{a.why or ''}"
+        return (
+            f"Culprit Verdict — {a.run_id}\n"
+            f"Result: PASS (confidence {a.confidence:.2f})\n{a.why or ''}"
+        )
     lines = [
         f"Culprit Verdict — {a.run_id}",
         "Result: FAIL",

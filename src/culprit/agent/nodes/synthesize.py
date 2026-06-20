@@ -16,7 +16,9 @@ from culprit.agent.state import AgentState
 class Summarizer(Protocol):
     """Anything that can turn the run's outcome into a summary string."""
 
-    def summarize(self, ticket: dict[str, Any], record: dict[str, Any], plan: dict[str, Any]) -> str: ...
+    def summarize(
+        self, ticket: dict[str, Any], record: dict[str, Any], plan: dict[str, Any]
+    ) -> str: ...
 
 
 class TemplateSummarizer:

@@ -16,14 +16,13 @@ import json
 from pathlib import Path
 
 import streamlit as st
-
-from culprit.config import settings
-from culprit.recorder import TrajectoryStore
-
 from components.dag import render_dag
 from components.drift_tab import render_drift
 from components.meta_eval_tab import render_meta_eval
 from components.verdict_panel import render_verdict
+
+from culprit.config import settings
+from culprit.recorder import TrajectoryStore
 
 st.set_page_config(page_title="Culprit", page_icon="🔎", layout="wide")
 
@@ -52,7 +51,10 @@ tab_runs, tab_meta, tab_drift = st.tabs(["Runs", "Meta-evaluation", "Drift"])
 
 with tab_runs:
     if not run_ids:
-        st.info("No runs recorded yet. Run `python -m culprit.run --tickets data/synthetic/tickets.jsonl`.")
+        st.info(
+            "No runs recorded yet. Run "
+            "`python -m culprit.run --tickets data/synthetic/tickets.jsonl`."
+        )
     else:
         run_id = st.sidebar.selectbox("Run", list(reversed(run_ids)))
         trajectory = store.get(run_id)

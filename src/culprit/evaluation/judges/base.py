@@ -10,7 +10,7 @@ deterministic stand-in.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -23,7 +23,7 @@ from culprit.schemas.trajectory import Step, StepType, Trajectory
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
 
-@lru_cache(maxsize=None)
+@cache
 def load_prompt(name: str) -> str:
     """Load a prompt template by stem (e.g. ``"retrieval"``) from prompts/."""
     return (PROMPTS_DIR / f"{name}.txt").read_text(encoding="utf-8")
@@ -94,4 +94,6 @@ class BaseComponentJudge(ABC):
         self, trajectory: Trajectory, step: Step, temperature: float = 0.0
     ) -> RawJudgment:
         """Produce a single (un-aggregated) judgment for this step."""
-        return self.backend.judge_component(self.build_request(trajectory, step), temperature)
+        request = self.build_request(trajectory, step)
+        result: RawJudgment = self.backend.judge_component(request, temperature)
+        return result

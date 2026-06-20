@@ -7,16 +7,22 @@ from culprit.schemas.evaluation import (
     EvaluationResult,
     Verdict,
 )
-from culprit.schemas.trajectory import Action, Step, StepType, Trajectory
+from culprit.schemas.trajectory import Step, StepType, Trajectory
 
 
 def _traj():
     return Trajectory(
         run_id="r",
         steps=[
-            Step(step_id="step_00", step_index=0, span_name="retrieve", step_type=StepType.RETRIEVAL),
+            Step(
+                step_id="step_00", step_index=0, span_name="retrieve",
+                step_type=StepType.RETRIEVAL,
+            ),
             Step(step_id="step_01", step_index=1, span_name="plan", step_type=StepType.PLANNING),
-            Step(step_id="step_04", step_index=4, span_name="synthesize", step_type=StepType.SYNTHESIS),
+            Step(
+                step_id="step_04", step_index=4, span_name="synthesize",
+                step_type=StepType.SYNTHESIS,
+            ),
         ],
     )
 
@@ -26,8 +32,14 @@ def _eval():
         run_id="r",
         end_to_end=EndToEndVerdict(verdict=Verdict.FAIL, confidence=0.9),
         component_verdicts=[
-            ComponentVerdict(step_id="step_04", step_type=StepType.SYNTHESIS, verdict=Verdict.FAIL, confidence=0.9),
-            ComponentVerdict(step_id="step_00", step_type=StepType.RETRIEVAL, verdict=Verdict.FAIL, confidence=0.9),
+            ComponentVerdict(
+                step_id="step_04", step_type=StepType.SYNTHESIS,
+                verdict=Verdict.FAIL, confidence=0.9,
+            ),
+            ComponentVerdict(
+                step_id="step_00", step_type=StepType.RETRIEVAL,
+                verdict=Verdict.FAIL, confidence=0.9,
+            ),
         ],
     )
 

@@ -12,8 +12,6 @@ Implements the README's `attribute(...)`:
 
 from __future__ import annotations
 
-from typing import Any
-
 from culprit.attribution.counterfactual import CounterfactualEngine
 from culprit.attribution.crs import causal_responsibility
 from culprit.attribution.selector import Suspect, earliest_failing, select_suspects

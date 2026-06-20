@@ -18,8 +18,7 @@ Writes:
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
 
 from culprit.attribution import AttributionEngine
 from culprit.config import REPO_ROOT, settings
@@ -104,7 +103,7 @@ def main() -> int:
     meta = json.loads(metrics_path.read_text(encoding="utf-8")) if metrics_path.exists() else None
 
     bundle = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "meta_eval": meta,
         "runs": runs,
     }
@@ -117,7 +116,8 @@ def main() -> int:
     (REPO_ROOT / "ui" / "dashboard_data.json").write_text(
         json.dumps(bundle, indent=2, default=str), encoding="utf-8"
     )
-    print(f"\nWrote {len(runs)} runs ({sum(1 for r in runs if r['attribution']['end_to_end_verdict']=='fail')} fail) -> {out_js}")
+    n_fail = sum(1 for r in runs if r["attribution"]["end_to_end_verdict"] == "fail")
+    print(f"\nWrote {len(runs)} runs ({n_fail} fail) -> {out_js}")
     return 0
 
 

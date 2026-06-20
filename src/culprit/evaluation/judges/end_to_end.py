@@ -71,4 +71,6 @@ class EndToEndJudge:
         )
 
     def judge_once(self, trajectory: Trajectory, temperature: float = 0.0) -> RawJudgment:
-        return self.backend.judge_end_to_end(self.build_request(trajectory), temperature)
+        request = self.build_request(trajectory)
+        result: RawJudgment = self.backend.judge_end_to_end(request, temperature)
+        return result

@@ -51,7 +51,9 @@ def test_main_prints_summary_for_successful_run(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(run_module, "load_tickets", lambda path: [{"id": "one"}])
     monkeypatch.setattr(run_module, "run_pipeline", lambda tickets, output_dir: reports)
 
-    exit_code = run_module.main(["--tickets", str(tickets_path), "--output-dir", str(tmp_path / "out")])
+    exit_code = run_module.main(
+        ["--tickets", str(tickets_path), "--output-dir", str(tmp_path / "out")]
+    )
 
     captured = capsys.readouterr()
     assert exit_code == 0

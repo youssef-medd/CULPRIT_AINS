@@ -36,12 +36,10 @@ def _provides_field(step: Step, field: str) -> bool:
     field *names* that exist on the input, even when the value is null, which is
     exactly the degraded case we must catch.
     """
-    empty = (None, "", [], {})
+    empty: tuple[Any, ...] = (None, "", [], {})
     if step.action and step.action.arguments.get(field) not in empty:
         return True
-    if isinstance(step.result, dict) and step.result.get(field) not in empty:
-        return True
-    return False
+    return isinstance(step.result, dict) and step.result.get(field) not in empty
 
 
 class Checker(ABC):

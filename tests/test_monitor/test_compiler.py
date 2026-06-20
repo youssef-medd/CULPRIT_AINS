@@ -8,7 +8,7 @@ from culprit.monitor.compiler import (
     _provides_field,
     compile_checkers,
 )
-from culprit.schemas.trajectory import Action, ContextSnapshot, Step, StepType
+from culprit.schemas.trajectory import Action, ContextSnapshot, Step
 
 
 def test_compiles_one_checker_per_invariant():

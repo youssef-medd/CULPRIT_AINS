@@ -54,7 +54,9 @@ class FixedSummarizer:
     def __init__(self, summary: str) -> None:
         self._summary = summary
 
-    def summarize(self, ticket: dict[str, Any], record: dict[str, Any], plan: dict[str, Any]) -> str:
+    def summarize(
+        self, ticket: dict[str, Any], record: dict[str, Any], plan: dict[str, Any]
+    ) -> str:
         return self._summary
 
 
@@ -102,7 +104,9 @@ class CounterfactualEngine:
         self.max_edits = max_edits
 
     # --- replay primitive ---
-    def _replay(self, trajectory: Trajectory, suspect: Suspect, correction: dict[str, Any]) -> RunStatus:
+    def _replay(
+        self, trajectory: Trajectory, suspect: Suspect, correction: dict[str, Any]
+    ) -> RunStatus:
         ticket = _ticket_from(trajectory)
         planner = None
         summarizer = None
@@ -131,7 +135,9 @@ class CounterfactualEngine:
             # The "from" value is what retrieval actually used (often null/wrong),
             # read off the decisive step itself, not the ticket.
             step = trajectory.step_by_id(suspect.step_id)
-            current_area = step.action.arguments.get("product_area") if step and step.action else None
+            current_area = (
+                step.action.arguments.get("product_area") if step and step.action else None
+            )
             areas: list[str] = []
             if ticket.get("product_area"):
                 areas.append(ticket["product_area"])
@@ -175,7 +181,10 @@ class CounterfactualEngine:
                 _Candidate(
                     correction={"summary": summary},
                     repair=Repair(
-                        description="Regenerate the summary grounded strictly in the set team/priority.",
+                        description=(
+                            "Regenerate the summary grounded strictly in the set "
+                            "team/priority."
+                        ),
                         edits=[RepairEdit(field="summary", to_value=summary)],
                     ),
                 )

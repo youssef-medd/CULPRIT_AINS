@@ -57,13 +57,21 @@ def render_report(metrics: MetaEvalMetrics, results: list[CaseResult]) -> str:
             f"| {c.component} | {c.precision:.2f} | {c.recall:.2f} | {c.f1:.2f} | {c.support} |"
         )
 
-    lines += ["", "## Resilience by injected fault type", "", "| Fault type | Cases | Localized | Confirmed |", "|---|---|---|---|"]
+    lines += [
+        "",
+        "## Resilience by injected fault type",
+        "",
+        "| Fault type | Cases | Localized | Confirmed |",
+        "|---|---|---|---|",
+    ]
     fault_types = sorted({r.fault_type for r in results})
     for ft in fault_types:
         subset = [r for r in results if r.fault_type == ft]
         localized = sum(r.step_hit for r in subset)
         confirmed = sum(r.confirmed for r in subset)
-        lines.append(f"| {ft} | {len(subset)} | {localized}/{len(subset)} | {confirmed}/{len(subset)} |")
+        lines.append(
+            f"| {ft} | {len(subset)} | {localized}/{len(subset)} | {confirmed}/{len(subset)} |"
+        )
 
     misses = [r for r in results if not r.component_hit]
     lines += ["", "## Misattributions", ""]

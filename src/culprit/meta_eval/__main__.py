@@ -16,10 +16,14 @@ from culprit.run import load_tickets
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run the Culprit meta-evaluation (judging the judges).")
+    parser = argparse.ArgumentParser(
+        description="Run the Culprit meta-evaluation (judging the judges)."
+    )
     parser.add_argument("--tickets", type=Path, default=None, help="JSONL tickets to fuzz from.")
     parser.add_argument("--seed", type=int, default=0, help="Fuzzing seed (reproducibility).")
-    parser.add_argument("--output-dir", type=Path, default=settings.output_dir, help="Report output dir.")
+    parser.add_argument(
+        "--output-dir", type=Path, default=settings.output_dir, help="Report output dir."
+    )
     args = parser.parse_args(argv)
 
     tickets = None
@@ -37,7 +41,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  Counterfactual confirmation rate: {m.confirmation_rate:.1%}\n")
     print(f"  {'component':16} {'P':>5} {'R':>5} {'F1':>5} {'support':>8}")
     for c in m.per_category:
-        print(f"  {c.component.value:16} {c.precision:5.2f} {c.recall:5.2f} {c.f1:5.2f} {c.support:8d}")
+        print(
+            f"  {c.component.value:16} {c.precision:5.2f} {c.recall:5.2f} "
+            f"{c.f1:5.2f} {c.support:8d}"
+        )
     return 0
 
 

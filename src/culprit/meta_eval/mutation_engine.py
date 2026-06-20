@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import random
 from collections.abc import Iterable
+from typing import Any
 
 from culprit.meta_eval.injector import InjectedCase, inject_all
 from culprit.schemas.trajectory import Trajectory
@@ -26,7 +27,9 @@ class MutationEngine:
     def __init__(self, seed: int = 0) -> None:
         self.rng = random.Random(seed)
 
-    def fuzz(self, good_trajectories: Iterable[Trajectory], shuffle: bool = True) -> list[InjectedCase]:
+    def fuzz(
+        self, good_trajectories: Iterable[Trajectory], shuffle: bool = True
+    ) -> list[InjectedCase]:
         """Apply every fault mutator to every good base trajectory."""
         cases: list[InjectedCase] = []
         for trajectory in good_trajectories:
@@ -35,7 +38,9 @@ class MutationEngine:
             self.rng.shuffle(cases)
         return cases
 
-    def fuzz_tickets(self, tickets: Iterable[dict], shuffle: bool = True) -> list[InjectedCase]:
+    def fuzz_tickets(
+        self, tickets: Iterable[dict[str, Any]], shuffle: bool = True
+    ) -> list[InjectedCase]:
         """Record good runs for well-specified tickets, then fuzz them.
 
         Tickets without a product area are skipped: their 'correct' routing is
