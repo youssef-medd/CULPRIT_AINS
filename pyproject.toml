@@ -32,7 +32,7 @@ dependencies = [
 agent = [
     "langgraph>=0.2",
     "langchain-core>=0.3",
-    "anthropic>=0.39",
+    "openai>=1.0",
 ]
 recorder = [
     "opentelemetry-api>=1.27",
