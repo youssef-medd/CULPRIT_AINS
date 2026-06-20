@@ -40,3 +40,8 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Installed Claude Code skills (hve-spielberg video pipeline, etc.)
+.agents/
+.claude/skills/
+skills-lock.json
