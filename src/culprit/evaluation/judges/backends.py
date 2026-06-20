@@ -2,8 +2,8 @@
 
 * ``LLMJudgeBackend`` — the real, frontier mechanism. Renders the rubric-anchored
   prompt, randomizes the verdict-option order (a cheap position-bias mitigation),
-  calls Anthropic, and parses the JSON verdict. Lazily imports ``anthropic`` and
-  degrades to ``UNKNOWN`` (never crashes) on any failure.
+  calls NVIDIA (OpenAI-compatible API), and parses the JSON verdict. Lazily imports
+  ``openai`` and degrades to ``UNKNOWN`` (never crashes) on any failure.
 * ``HeuristicJudgeBackend`` — a deterministic stand-in so the whole pipeline runs
   and is testable without an API key. It approximates the LLM's semantic checks
   with computable ones (e.g. retrieval relevance = do retrieved areas match the
@@ -41,7 +41,7 @@ def _verdict_options(rng: random.Random) -> str:
 # LLM backend
 # --------------------------------------------------------------------------- #
 class LLMJudgeBackend:
-    """Anthropic-backed judge. Non-deterministic; the real mechanism."""
+    """NVIDIA-backed judge (OpenAI-compatible API). Non-deterministic; the real mechanism."""
 
     is_deterministic = False
 
@@ -56,20 +56,21 @@ class LLMJudgeBackend:
 
     def _call(self, prompt: str, temperature: float) -> RawJudgment:
         try:
-            import anthropic
+            from openai import OpenAI
         except ImportError:
-            return RawJudgment(rationale="anthropic SDK not installed")
-        if not settings.anthropic_api_key:
-            return RawJudgment(rationale="no ANTHROPIC_API_KEY configured")
+            return RawJudgment(rationale="openai SDK not installed")
+        if not settings.nvidia_api_key:
+            return RawJudgment(rationale="no NVIDIA_API_KEY configured")
         try:
-            client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-            msg = client.messages.create(
+            client = OpenAI(base_url=settings.nvidia_base_url, api_key=settings.nvidia_api_key)
+            completion = client.chat.completions.create(
                 model=self.model,
                 max_tokens=600,
                 temperature=temperature,
                 messages=[{"role": "user", "content": prompt}],
+                extra_body={"chat_template_kwargs": {"thinking": False}},
             )
-            return self._parse(msg.content[0].text)
+            return self._parse(completion.choices[0].message.content)
         except Exception as exc:  # reliability: never crash the pipeline
             return RawJudgment(rationale=f"judge error: {exc}")
 
@@ -327,9 +328,9 @@ class HeuristicJudgeBackend:
 
 def default_backend() -> Any:
     """Return the LLM backend when a key is configured, else the heuristic one."""
-    if settings.anthropic_api_key:
+    if settings.nvidia_api_key:
         try:
-            import anthropic  # noqa: F401
+            import openai  # noqa: F401
 
             return LLMJudgeBackend()
         except ImportError:
