@@ -118,7 +118,6 @@ class LLMPlanner:
                 model=settings.agent_model,
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}],
-                extra_body={"chat_template_kwargs": {"thinking": False}},
             )
             data = json.loads(completion.choices[0].message.content)
             return Plan(
