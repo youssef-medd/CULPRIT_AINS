@@ -10,13 +10,14 @@ Everything tunable lives here so the rest of the codebase never reads
 from __future__ import annotations
 
 from functools import lru_cache
+from importlib import resources as _resources
 from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Repo root = .../CULPRIT_AINS (this file is src/culprit/config.py).
-REPO_ROOT: Path = Path(__file__).resolve().parents[2]
+# Repo root = .../CULPRIT_AINS (anchored to the culprit package directory).
+REPO_ROOT: Path = Path(_resources.files("culprit")).resolve().parent.parent
 
 
 class Settings(BaseSettings):

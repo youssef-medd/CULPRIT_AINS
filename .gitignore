@@ -41,6 +41,12 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Python version / tooling
+.python-version
+
+# Node (if UI tooling is added later)
+node_modules/
+
 # Installed Claude Code skills (hve-spielberg video pipeline, etc.)
 .agents/
 .claude/skills/

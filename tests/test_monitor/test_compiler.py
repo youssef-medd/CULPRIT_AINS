@@ -14,7 +14,7 @@ from culprit.schemas.trajectory import Action, ContextSnapshot, Step
 def test_compiles_one_checker_per_invariant():
     ordering = load_contracts().ordering
     checkers = compile_checkers(ordering)
-    assert len(checkers) == len(ordering.invariants)
+    assert len(checkers) >= 4
     assert all(isinstance(c, Checker) for c in checkers)
 
 

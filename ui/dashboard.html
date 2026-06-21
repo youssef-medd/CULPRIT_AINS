@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'">
 <title>Culprit — Failure Attribution</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
@@ -502,16 +503,24 @@ table.pc tbody tr:last-child td{border-bottom:0}
 <div id="view"></div>
 
 <script src="vendor/motion.min.js"></script>
-<script src="dashboard_data.js"></script>
 <script>
-const DATA = window.CULPRIT_DATA || {runs:[],meta_eval:null};
+let DATA = {runs:[],meta_eval:null};
+fetch('dashboard_data.json').then(r=>r.ok?r.json():Promise.reject()).then(d=>{DATA=d;mount(true);}).catch(()=>{
+  console.warn('dashboard_data.json not found, trying legacy .js fallback');
+  const s=document.createElement('script');s.src='dashboard_data.js';
+  s.onload=()=>{DATA=window.CULPRIT_DATA||DATA;mount(true);};
+  document.body.appendChild(s);
+});
+</script>
+<script>
+const _DATA = DATA;
 const RUNS = DATA.runs||[];
 const TYPEC = {retrieval:'#4C9AFF',planning:'#9F7AEA',tool_execution:'#2DD4BF',synthesis:'#F59E0B',unknown:'#94A3B8'};
 const NICE = {retrieval:'Retrieval',planning:'Planning',tool_execution:'Tool Execution',synthesis:'Synthesis'};
 const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-let S = {view:'runs', runId:(RUNS.find(r=>r.attribution.end_to_end_verdict==='fail')||RUNS[0]||{}).run_id, stepId:null, snip:'evidence', q:''};
+let S = {view:'runs', runId:(RUNS.find(r=>r.attribution.end_to_end_verdict==='fail')||RUNS[0]||{}).run_id, stepId:null, snip:'evidence', q:'', page:0, pageSize:30};
 
-const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc=s=>String(s==null?'':s).replace(/[&<>"'\/`']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#x27;','/':'&#x2F;','`':'&#x60;'}[c]));
 const fv=v=>v===null||v===undefined?'null':(typeof v==='object'?JSON.stringify(v):String(v));
 const isFail=r=>r.attribution.end_to_end_verdict==='fail';
 const runById=id=>RUNS.find(r=>r.run_id===id);
@@ -547,8 +556,12 @@ function agg(){
 function runList(){
   const q=S.q.toLowerCase();
   const items=RUNS.filter(r=>!q||r.run_id.toLowerCase().includes(q)||(r.ticket&&(r.ticket.id+r.ticket.title).toLowerCase().includes(q)));
+  const totalPages=Math.max(1,Math.ceil(items.length/S.pageSize));
+  S.page=Math.min(S.page,totalPages-1);
+  const page=items.slice(S.page*S.pageSize,(S.page+1)*S.pageSize);
   const card=r=>{const a=r.attribution,f=isFail(r);
-    return `<div class="run-card ${r.run_id===S.runId?'active':''}" onclick="pickRun('${r.run_id}')">
+    const rid=esc(r.run_id);
+    return `<div class="run-card ${r.run_id===S.runId?'active':''}" data-runid="${rid}" onclick="pickRun(this.dataset.runid)">
       <div class="run-row"><span class="run-id">${esc(r.ticket?r.ticket.id:r.run_id)}</span>
         <span class="badge ${f?'fail':'pass'}">${f?'FAILED':'SUCCESS'}</span></div>
       <div class="run-sub">
@@ -556,12 +569,15 @@ function runList(){
         <span>${f?esc(NICE[a.decisive_step_type]||a.decisive_step_type):'task ok'}</span>
         <span style="margin-left:auto">${fmtMs(r.total_ms)}</span></div>
     </div>`;};
+  const pagerBtn=(label,pageFn,disabled)=>`<button class="btn" style="padding:4px 10px;font-size:11px" ${disabled?'disabled':'onclick="'+pageFn+';document.getElementById(\'runlistMount\').innerHTML=runList();bindSearch();"'} style="${disabled?'opacity:.35;cursor:default':''}">${label}</button>`;
+  const pp=pagerBtn('◀','S.page--',S.page<=0);
+  const np=pagerBtn('▶','S.page++',S.page>=totalPages-1);
   return `<div class="card runlist">
     <div class="hd"><h3>Runs</h3><span class="mono" style="font-size:11px;color:var(--muted2)">${items.length}</span></div>
     <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input placeholder="Search runs…" value="${esc(S.q)}" oninput="S.q=this.value;document.getElementById('runlistMount').innerHTML=runList();bindSearch();"></div>
-    <div class="runscroll">${items.map(card).join('')||'<div class="empty">No matches</div>'}</div>
-    <div class="pager"><span>${RUNS.filter(isFail).length} failed</span> · <span>${RUNS.length-RUNS.filter(isFail).length} passed</span></div>
+      <input placeholder="Search runs…" value="${esc(S.q)}" oninput="S.q=this.value;S.page=0;document.getElementById('runlistMount').innerHTML=runList();bindSearch();" data-safe="1"></div>
+    <div class="runscroll">${page.map(card).join('')||'<div class="empty">No matches</div>'}</div>
+    <div class="pager">${pp} <span>${S.page*S.pageSize+1}–${Math.min((S.page+1)*S.pageSize,items.length)} of ${items.length}</span> ${np} ${RUNS.filter(isFail).length} fail · ${RUNS.length-RUNS.filter(isFail).length} pass</div>
   </div>`;
 }
 function bindSearch(){const i=document.querySelector('.search input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}}
@@ -578,7 +594,8 @@ function dag(run){
   const node=s=>{const cls=stepStateClass(s,dec);const isDec=s.step_id===dec;
     const sd=cls==='decisive'?'err':cls;const icon={ok:'✓',err:'✕',warn:'!',skip:'–'}[sd]||'•';
     const tool=s.action?s.action.tool_name:'';
-    return `<div class="dnode ${cls} ${s.step_id===S.stepId?'sel':''}" onclick="pickStep('${s.step_id}')">
+    const sid=esc(s.step_id);
+    return `<div class="dnode ${cls} ${s.step_id===S.stepId?'sel':''}" data-stepid="${sid}" onclick="pickStep(this.dataset.stepid)">
       ${isDec?'<span class="dec-tag">DECISIVE</span>':''}
       <div class="accentbar"></div>
       <div class="nmain"><div class="ntitle">${esc(NICE[s.step_type]||s.step_type)}</div>

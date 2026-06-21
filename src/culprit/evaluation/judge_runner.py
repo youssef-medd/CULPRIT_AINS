@@ -9,8 +9,11 @@ at confidence 0 rather than crashing the pipeline (NF2 reliability).
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from culprit.config import settings
 from culprit.contracts import load_contracts
@@ -103,6 +106,13 @@ class JudgeRunner:
             else:  # unresolved -> preserve the uncertainty signal for a human
                 verdict.confidence = min(verdict.confidence, outcome.confidence)
                 verdict.rationale = outcome.rationale or verdict.rationale
+            if outcome.escalate:
+                logger.warning(
+                    "Escalation triggered for step %s (%s): %s",
+                    step.step_id,
+                    step.step_type.value,
+                    outcome.rationale,
+                )
 
         return verdict
 

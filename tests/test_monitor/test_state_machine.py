@@ -40,4 +40,6 @@ def test_first_alert_is_earliest():
     monitor.run(_bad())
     first = monitor.first_alert()
     assert first is not None
-    assert first.step_index == min(a.step_index for a in monitor.alerts)
+    # _bad() has PLANNING at step 0 before RETRIEVAL -> first violation at step 0
+    assert first.step_index == 0
+    assert first.step_id == "s0"

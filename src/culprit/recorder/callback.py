@@ -9,6 +9,7 @@ stays small and robust to callback-shape differences across versions.
 
 from __future__ import annotations
 
+import threading
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -17,9 +18,14 @@ from langchain_core.callbacks import BaseCallbackHandler
 
 
 class TrajectoryRecorder(BaseCallbackHandler):
-    """Records the wall-clock latency of each graph node, in execution order."""
+    """Records the wall-clock latency of each graph node, in execution order.
+
+    Thread-safe: uses a lock around all shared-mutable access so that
+    LangGraph can invoke callbacks from concurrent runners.
+    """
 
     def __init__(self) -> None:
+        self._lock = threading.Lock()
         # Finalized node events: {node, step, started_at, ended_at, latency_ms}.
         self.node_events: list[dict[str, Any]] = []
         # In-flight starts keyed by the langchain run id.
@@ -37,21 +43,25 @@ class TrajectoryRecorder(BaseCallbackHandler):
         node = (metadata or {}).get("langgraph_node")
         if not node:  # the graph-level chain has no node name; ignore it
             return
-        self._open[run_id] = {
-            "node": node,
-            "step": (metadata or {}).get("langgraph_step"),
-            "started_at": datetime.now(UTC),
-        }
+        with self._lock:
+            self._open[run_id] = {
+                "node": node,
+                "step": (metadata or {}).get("langgraph_step"),
+                "started_at": datetime.now(UTC),
+            }
 
     def on_chain_end(self, outputs: Any, *, run_id: UUID, **kwargs: Any) -> None:
-        event = self._open.pop(run_id, None)
+        with self._lock:
+            event = self._open.pop(run_id, None)
         if event is None:
             return
         ended = datetime.now(UTC)
         event["ended_at"] = ended
         event["latency_ms"] = (ended - event["started_at"]).total_seconds() * 1000.0
-        self.node_events.append(event)
+        with self._lock:
+            self.node_events.append(event)
 
     def node_latency_ms(self) -> dict[str, float]:
         """Return {node_name: latency_ms} for every completed node."""
-        return {e["node"]: e["latency_ms"] for e in self.node_events}
+        with self._lock:
+            return {e["node"]: e["latency_ms"] for e in self.node_events}

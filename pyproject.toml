@@ -22,31 +22,31 @@ keywords = [
 # Heavier subsystems are pulled in via the optional groups so the
 # foundation stays importable and testable on its own.
 dependencies = [
-    "pydantic>=2.6",
-    "pydantic-settings>=2.2",
-    "PyYAML>=6.0",
-    "python-dotenv>=1.0",
+    "pydantic>=2.6,<3",
+    "pydantic-settings>=2.2,<3",
+    "PyYAML>=6.0,<7",
+    "python-dotenv>=1.0,<2",
 ]
 
 [project.optional-dependencies]
 agent = [
-    "langgraph>=0.2",
-    "langchain-core>=0.3",
-    "openai>=1.0",
+    "langgraph>=0.2,<1",
+    "langchain-core>=0.3,<1",
+    "openai>=1.0,<2",
 ]
 recorder = [
-    "opentelemetry-api>=1.27",
-    "opentelemetry-sdk>=1.27",
+    "opentelemetry-api>=1.27,<2",
+    "opentelemetry-sdk>=1.27,<2",
 ]
-verdict = ["Jinja2>=3.1"]
-drift = ["numpy>=1.26", "scipy>=1.13"]
-ui = ["streamlit>=1.38", "streamlit-agraph>=0.0.45"]
+verdict = ["Jinja2>=3.1,<4"]
+drift = ["numpy>=1.26,<3", "scipy>=1.13,<2"]
+ui = ["streamlit>=1.38,<2", "streamlit-agraph>=0.0.45,<1"]
 dev = [
-    "pytest>=8.0",
-    "pytest-asyncio>=0.23",
-    "mypy>=1.10",
-    "ruff>=0.5",
-    "types-PyYAML>=6.0",
+    "pytest>=8.0,<9",
+    "pytest-asyncio>=0.23,<1",
+    "mypy>=1.10,<2",
+    "ruff>=0.5,<1",
+    "types-PyYAML>=6.0,<7",
 ]
 
 [project.scripts]

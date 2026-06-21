@@ -18,6 +18,7 @@ Writes:
 from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, datetime
 
 from culprit.attribution import AttributionEngine
@@ -28,6 +29,8 @@ from culprit.monitor import build_monitor
 from culprit.recorder import TrajectoryStore, record_run
 from culprit.run import load_tickets
 from culprit.verdict import VerdictRenderer
+
+logger = logging.getLogger(__name__)
 
 # fault_type -> tickets that make a coherent story for that fault
 _FAULTS = {
@@ -70,6 +73,7 @@ def _record(run, ticket, attribution, label):
 
 
 def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     tickets = _tickets_by_id()
     store = TrajectoryStore()
     runner = JudgeRunner()
@@ -88,15 +92,16 @@ def main() -> int:
             store.save(traj)
             attribution = _evaluate(traj, runner, engine, renderer)
             runs.append(_record(traj, tickets[ticket_id], attribution, case.label))
-            print(f"  FAIL  {traj.run_id:34}  decisive={attribution.decisive_step_type} "
-                  f"crs={attribution.crs} confirmed={attribution.confirmed}")
+            logger.info("  FAIL  %-34s  decisive=%s crs=%s confirmed=%s",
+                        traj.run_id, attribution.decisive_step_type,
+                        attribution.crs, attribution.confirmed)
 
     # --- passing runs (contrast) ---
     for ticket_id in _PASS_TICKETS:
         traj = record_run(tickets[ticket_id], run_id=f"demo_pass_{ticket_id}", store=store)
         attribution = _evaluate(traj, runner, engine, renderer)
         runs.append(_record(traj, tickets[ticket_id], attribution, None))
-        print(f"  PASS  {traj.run_id}")
+        logger.info("  PASS  %s", traj.run_id)
 
     # --- meta-eval metrics, if present ---
     metrics_path = settings.output_dir / "meta_eval_metrics.json"
@@ -117,7 +122,7 @@ def main() -> int:
         json.dumps(bundle, indent=2, default=str), encoding="utf-8"
     )
     n_fail = sum(1 for r in runs if r["attribution"]["end_to_end_verdict"] == "fail")
-    print(f"\nWrote {len(runs)} runs ({n_fail} fail) -> {out_js}")
+    logger.info("\nWrote %d runs (%d fail) -> %s", len(runs), n_fail, out_js)
     return 0
 
 

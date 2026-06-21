@@ -11,6 +11,7 @@ persists it::
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any
 
 from culprit.agent.graph import build_graph
@@ -20,6 +21,19 @@ from culprit.recorder.store import TrajectoryStore
 from culprit.recorder.trajectory_builder import build_trajectory, new_run_id
 from culprit.schemas.trajectory import Trajectory
 from culprit.tagger import tag_trajectory
+
+
+@lru_cache(maxsize=2)
+def _default_graph() -> Any:
+    """Cached default compiled graph (no planner/summarizer overrides)."""
+    return build_graph()
+
+
+def _get_graph(planner: Any | None, summarizer: Any | None) -> Any:
+    """Return a compiled graph, using the cached default when no overrides."""
+    if planner is None and summarizer is None:
+        return _default_graph()
+    return build_graph(planner=planner, summarizer=summarizer)
 
 
 def record_run(
@@ -32,7 +46,7 @@ def record_run(
 ) -> Trajectory:
     """Run the agent on a ticket and return its captured, tagged trajectory."""
     normalized = Ticket.model_validate(ticket).model_dump()
-    app = build_graph(planner=planner, summarizer=summarizer)
+    app = _get_graph(planner, summarizer)
 
     recorder = TrajectoryRecorder()
     initial = {"ticket": normalized, "tool_calls": [], "jsm": {"comments": []}}

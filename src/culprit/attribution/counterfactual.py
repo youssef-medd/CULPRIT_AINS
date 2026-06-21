@@ -79,11 +79,12 @@ def _record_from(trajectory: Trajectory) -> dict[str, Any]:
     return {}
 
 
-def _plan_from(trajectory: Trajectory) -> dict[str, Any]:
+def _plan_result(trajectory: Trajectory) -> dict[str, Any] | None:
+    """Get the plan result dict from the planning step of a trajectory."""
     for step in trajectory.steps_of_type(StepType.PLANNING):
         if isinstance(step.result, dict):
             return step.result
-    return {}
+    return None
 
 
 @dataclass
@@ -164,7 +165,7 @@ class CounterfactualEngine:
         elif suspect.step_type in (StepType.PLANNING, StepType.TOOL_EXECUTION):
             gold = PRODUCT_AREA_TEAM.get((ticket.get("product_area") or "").lower())
             if gold:
-                current_plan = _plan_from_trajectory(trajectory)
+                current_plan = _plan_result(trajectory)
                 current_team = current_plan.get("team") if current_plan else None
                 candidates.append(
                     _Candidate(
@@ -177,8 +178,10 @@ class CounterfactualEngine:
                 )
         elif suspect.step_type == StepType.SYNTHESIS:
             summary = TemplateSummarizer().summarize(
-                ticket, _record_from(trajectory), _plan_from(trajectory)
+                ticket, _record_from(trajectory), _plan_result(trajectory) or {}
             )
+            step = trajectory.step_by_id(suspect.step_id)
+            current_summary = step.result if step else None
             candidates.append(
                 _Candidate(
                     correction={"summary": summary},
@@ -187,7 +190,7 @@ class CounterfactualEngine:
                             "Regenerate the summary grounded strictly in the set "
                             "team/priority."
                         ),
-                        edits=[RepairEdit(field="summary", to_value=summary)],
+                        edits=[RepairEdit(field="summary", from_value=str(current_summary) if current_summary else None, to_value=summary)],
                     ),
                 )
             )
@@ -252,11 +255,3 @@ def replace_step_type(suspect: Suspect, step_type: StepType) -> Suspect:
     from dataclasses import replace
 
     return replace(suspect, step_type=step_type)
-
-
-def _plan_from_trajectory(trajectory: Trajectory) -> dict[str, Any] | None:
-    """Get the plan dict from the planning step of a trajectory."""
-    for step in trajectory.steps_of_type(StepType.PLANNING):
-        if isinstance(step.result, dict):
-            return step.result
-    return None
