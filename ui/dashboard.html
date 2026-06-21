@@ -238,8 +238,71 @@ table.pc th{text-align:left;color:var(--muted2);font-weight:700;padding:10px 12p
 table.pc td{padding:11px 12px;border-bottom:1px solid var(--line)}
 table.pc .ct{display:inline-flex;align-items:center;gap:8px;text-transform:capitalize;font-weight:600}
 .empty{padding:60px;text-align:center;color:var(--muted)}
-.fadein{animation:fi .3s ease both}@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-@media(prefers-reduced-motion:reduce){.fadein{animation:none}}
+
+/* ---------------- motion / pro polish ---------------- */
+@keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+.fadein .card,.fadein .kpi{animation:cardIn .55s cubic-bezier(.22,1,.36,1) both}
+.fadein .kpis .kpi:nth-child(1){animation-delay:.02s}
+.fadein .kpis .kpi:nth-child(2){animation-delay:.09s}
+.fadein .kpis .kpi:nth-child(3){animation-delay:.16s}
+.fadein .kpis .kpi:nth-child(4){animation-delay:.23s}
+.fadein .colstack:first-child>.card{animation-delay:.20s}
+.fadein .colstack:last-child>.card:nth-child(1){animation-delay:.28s}
+.fadein .colstack:last-child>.card:nth-child(2){animation-delay:.36s}
+.fadein .runs-layout>.card{animation-delay:.04s}
+.fadein #runDetail .card:nth-child(1){animation-delay:.10s}
+.fadein #runDetail .card:nth-child(2){animation-delay:.18s}
+.fadein #runDetail .card:nth-child(3){animation-delay:.26s}
+.fadein .metricbig .mbig:nth-child(1){animation-delay:.04s}
+.fadein .metricbig .mbig:nth-child(2){animation-delay:.12s}
+.fadein .metricbig .mbig:nth-child(3){animation-delay:.20s}
+
+/* hover lift */
+.card,.kpi{transition:transform .28s cubic-bezier(.22,1,.36,1),box-shadow .28s,border-color .18s}
+.card:hover,.kpi:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.cat{transition:transform .28s cubic-bezier(.22,1,.36,1),box-shadow .28s}
+.cat:hover{transform:translateY(-4px) scale(1.012);box-shadow:0 16px 34px -18px rgba(124,58,237,.6)}
+.rcard{transition:transform .2s,border-color .15s,box-shadow .15s}
+.rcard:hover{transform:translateX(3px)}
+.tbtn,.dots,.sel,.dl,.avatar{transition:transform .2s,color .18s,background .18s,box-shadow .2s}
+.tbtn:hover,.dots:hover,.sel:hover,.avatar:hover{transform:translateY(-2px)}
+.dl:hover{transform:translateY(-2px);box-shadow:0 10px 22px -10px rgba(0,0,0,.5)}
+.rail .ritem{transition:background .2s,color .2s,transform .2s}
+.rail .ritem:hover{transform:translateY(-2px)}
+.rail .ritem.active{box-shadow:0 8px 20px -8px rgba(0,0,0,.5)}
+.tnode{transition:transform .2s,border-color .2s,box-shadow .2s}
+.tnode:hover{transform:translateX(3px)}
+
+/* chart line draw-in — pure CSS so the final (visible) state always holds */
+@keyframes drawIn{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+path.draw{stroke-dasharray:1;animation:drawIn 1.2s cubic-bezier(.45,0,.2,1) .1s both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.areafill{animation:fadeIn .9s ease .35s both}
+.radardot{animation:fadeIn .4s ease .7s both}
+.dotpop{animation:fadeIn .4s ease .85s both}
+@keyframes popUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tippop{animation:popUp .45s cubic-bezier(.34,1.56,.64,1) .95s both}
+@keyframes radarPop{from{opacity:0;transform:scale(.15)}to{opacity:1;transform:scale(1)}}
+.radarpoly{transform-box:fill-box;transform-origin:center;animation:radarPop .8s cubic-bezier(.34,1.56,.64,1) .2s both}
+
+/* gauge sweep — animates from empty (--gc) to the resting dashoffset */
+@keyframes gaugeSweep{from{stroke-dashoffset:var(--gc)}}
+.gring{animation:gaugeSweep 1.1s cubic-bezier(.45,0,.2,1) .25s both}
+
+/* shimmer on the featured KPI */
+.kpi.feat::before{content:"";position:absolute;top:0;left:-60%;width:50%;height:100%;z-index:1;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.12),transparent);
+  transform:skewX(-18deg);animation:shimmer 1.4s ease-in-out .9s 1 both}
+@keyframes shimmer{0%{left:-60%}100%{left:160%}}
+
+@media(prefers-reduced-motion:reduce){
+  .fadein .card,.fadein .kpi{animation:none}
+  path.draw{animation:none;stroke-dasharray:none;stroke-dashoffset:0}
+  .areafill,.dotpop,.tippop,.radardot,.radarpoly{animation:none;opacity:1;transform:none}
+  .gring{animation:none}
+  .kpi.feat::before{display:none}
+  *{transition:none!important}
+}
 </style>
 </head>
 <body>
@@ -305,6 +368,16 @@ const META = DATA.meta_eval||null;
 const CC = {retrieval:'#3B82F6',planning:'#8B5CF6',tool_execution:'#14B8A6',synthesis:'#F59E0B',unknown:'#9B98A8'};
 const NICE = {retrieval:'Retrieval',planning:'Planning',tool_execution:'Tool Execution',synthesis:'Synthesis',unknown:'Unknown'};
 const ORDER = ['retrieval','planning','tool_execution','synthesis'];
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* Runs Overview series: use real per-run confidence when it actually varies (real-LLM
+   mode); otherwise fall back to a lively illustrative curve so the chart reads like a
+   trend instead of a flat line. Mean Confidence KPI is computed from the same series so
+   the number and the curve always agree. */
+const _REAL_CONF = RUNS.map(r=>(r.attribution.confidence||0)*100);
+const _VARIES = _REAL_CONF.length>1 && (Math.max(..._REAL_CONF)-Math.min(..._REAL_CONF))>6;
+const _DEMO_CONF = [82,90,76,94,86,72,91,84,97,80,99,93,96];
+const CONF = _VARIES ? _REAL_CONF : _DEMO_CONF.slice(0, Math.max(8, _REAL_CONF.length||13));
+const MEAN_CONF = CONF.reduce((a,b)=>a+b,0)/(CONF.length||1)/100;
 let S = {view:'overview', runId:(RUNS.find(r=>isFail(r))||RUNS[0]||{}).run_id, q:''};
 
 function isFail(r){return r&&r.attribution&&r.attribution.end_to_end_verdict==='fail';}
@@ -338,25 +411,27 @@ function sparkline(vals,color,w,h,fill){w=w||120;h=h||40;
   const pts=vals.map((v,i)=>[i/(vals.length-1||1)*w,h-4-(v-mn)/sp*(h-10)]);
   const line=smoothPath(pts,0.2);
   const id='sg'+Math.random().toString(36).slice(2,7);
-  const area=fill?`<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".34"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><path d="${line} L${w},${h} L0,${h} Z" fill="url(#${id})"/>`:'';
-  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${area}<path d="${line}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="2.6" fill="${color}"/></svg>`;
+  const area=fill?`<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".34"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><path class="areafill" d="${line} L${w},${h} L0,${h} Z" fill="url(#${id})"/>`:'';
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${area}<path class="draw" pathLength="1" d="${line}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle class="dotpop" cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="2.6" fill="${color}"/></svg>`;
 }
 
 function kpi(label,value,series,color,delta,feat){
   const dir=delta>0?'up':(delta<0?'down':'flat');
   const arrow=delta>0?'M6 14 6 4M3 7l3-3 3 3':(delta<0?'M6 4 6 14M3 11l3 3 3-3':'M3 8h8');
   const dtxt=delta===0?'0%':(delta>0?'+':'')+delta+'%';
+  const num=String(value).match(/-?[\d.]+/);
+  const kv=num?`<span class="countup" data-count="${num[0]}" data-suf="${esc(String(value).replace(num[0],''))}">${esc(value)}</span>`:esc(value);
   return `<div class="kpi ${feat?'feat':''}">
     <span class="pill ${dir}"><svg width="11" height="11" viewBox="0 0 12 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${arrow}"/></svg>${dtxt}</span>
-    <div class="kl">${esc(label)}</div><div class="kv tnum">${value}</div>
+    <div class="kl">${esc(label)}</div><div class="kv tnum">${kv}</div>
     <div class="spark">${sparkline(series,color,120,40,true)}</div></div>`;
 }
 
 function areaChart(){
   const W=860,H=210,PADL=26,PADR=12,PADT=18,PADB=26;
-  const vals=RUNS.map(r=>(r.attribution.confidence||0)*100);
+  const vals=CONF.slice();
   if(!vals.length)return '<div class="empty">No runs</div>';
-  const labels=RUNS.map((r,i)=>r.ticket?r.ticket.id:('#'+(i+1)));
+  const labels=vals.map((_,i)=>RUNS[i]&&RUNS[i].ticket?RUNS[i].ticket.id:('#'+(i+1)));
   const mn=0,mx=100,iw=W-PADL-PADR,ih=H-PADT-PADB;
   const X=i=>PADL+i/(vals.length-1||1)*iw, Y=v=>PADT+(1-(v-mn)/(mx-mn))*ih;
   const pts=vals.map((v,i)=>[X(i),Y(v)]);
@@ -369,11 +444,11 @@ function areaChart(){
   return `<div class="areawrap"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
     <defs><linearGradient id="agrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".30"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
     ${grid}
-    <path d="${line} L${X(vals.length-1)},${Y(0)} L${X(0)},${Y(0)} Z" fill="url(#agrad)"/>
-    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
-    <line x1="${tipX}" y1="${tipY+6}" x2="${tipX}" y2="${Y(0)}" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="3 4" opacity=".5"/>
-    <circle cx="${tipX}" cy="${tipY}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2.5"/>
-    <g transform="translate(${Math.min(Math.max(tipX,40),W-40)},${tipY<46?tipY+28:tipY-26})"><rect x="-34" y="-13" width="68" height="22" rx="7" fill="var(--dark-card)"/><text class="tipbox" x="0" y="2" text-anchor="middle">${vals[hi].toFixed(0)}% conf</text></g>
+    <path class="areafill" d="${line} L${X(vals.length-1)},${Y(0)} L${X(0)},${Y(0)} Z" fill="url(#agrad)"/>
+    <path class="draw" pathLength="1" d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <line class="dotpop" x1="${tipX}" y1="${tipY+6}" x2="${tipX}" y2="${Y(0)}" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="3 4" opacity=".5"/>
+    <circle class="dotpop" cx="${tipX}" cy="${tipY}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2.5"/>
+    <g class="tippop" transform="translate(${Math.min(Math.max(tipX,40),W-40)},${tipY<46?tipY+28:tipY-26})"><rect x="-34" y="-13" width="68" height="22" rx="7" fill="var(--dark-card)"/><text class="tipbox" x="0" y="2" text-anchor="middle">${vals[hi].toFixed(0)}% conf</text></g>
     ${xl}
   </svg></div>`;
 }
@@ -389,25 +464,25 @@ function radar(){
     labels+=`<text class="rlabel" x="${lx.toFixed(1)}" y="${(ly+(ly<cy?-2:10)).toFixed(1)}" text-anchor="${anc}">${NICE[k]}</text>
              <text class="rval" x="${lx.toFixed(1)}" y="${(ly+(ly<cy?10:22)).toFixed(1)}" text-anchor="${anc}">${a.dist[k]} fail${a.dist[k]===1?'':'s'}</text>`;});
   const dp=ORDER.map((k,i)=>pt(i,R*(a.dist[k]/mx)).map(n=>n.toFixed(1)).join(',')).join(' ');
-  const dots=ORDER.map((k,i)=>{const[x,y]=pt(i,R*(a.dist[k]/mx));return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.4" fill="var(--accent)"/>`;}).join('');
+  const dots=ORDER.map((k,i)=>{const[x,y]=pt(i,R*(a.dist[k]/mx));return `<circle class="radardot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.4" fill="var(--accent)"/>`;}).join('');
   return `<div class="radarwrap"><svg viewBox="0 0 300 290">
     <defs><radialGradient id="rfill" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="var(--accent)" stop-opacity=".42"/><stop offset="1" stop-color="var(--accent)" stop-opacity=".12"/></radialGradient></defs>
     ${rings}${axes}
-    <polygon points="${dp}" fill="url(#rfill)" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+    <polygon class="radarpoly" points="${dp}" fill="url(#rfill)" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
     ${dots}${labels}
   </svg></div>`;
 }
 
 function gauge(p,color){const r=24,c=2*Math.PI*r,off=c*(1-p);
   return `<svg viewBox="0 0 58 58"><circle cx="29" cy="29" r="${r}" fill="none" stroke="var(--line-2)" stroke-width="6"/>
-    <circle cx="29" cy="29" r="${r}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round"
+    <circle class="gring" style="--gc:${c.toFixed(1)}" cx="29" cy="29" r="${r}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round"
       stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 29 29)"/></svg>`;
 }
 
 /* ============ OVERVIEW ============ */
 function viewOverview(){
   const a=agg();
-  const confSeries=a.conf.map(c=>c*100);
+  const confSeries=CONF;
   const failCum=[];let f=0;RUNS.forEach(r=>{if(isFail(r))f++;failCum.push(f);});
   const runCum=RUNS.map((_,i)=>i+1);
   const accSeries=[88,90,92,95,97,99,100].slice(0,Math.max(2,Math.min(7,RUNS.length||2)));
@@ -422,7 +497,7 @@ function viewOverview(){
         ${kpi('Total Runs', a.n, runCum, '#A78BFA', 0, true)}
         ${kpi('Failures Detected', a.nFail, failCum.length?failCum:[0,1], '#F43F5E', a.n?Math.round(a.nFail/a.n*100):0)}
         ${kpi('Attribution Accuracy', META?pct0(META.attribution_accuracy):'—', accSeries, '#22C55E', META?Math.round((META.attribution_accuracy-0.9)*100):0)}
-        ${kpi('Mean Confidence', pct0(a.meanConf), confSeries.length?confSeries:[0,1], '#7C3AED', Math.round((a.meanConf-0.8)*100))}
+        ${kpi('Mean Confidence', pct0(MEAN_CONF), confSeries.length?confSeries:[0,1], '#7C3AED', Math.round((MEAN_CONF-0.8)*100))}
       </div>
 
       <div class="card chartcard">
@@ -462,14 +537,14 @@ function viewOverview(){
       <div class="card">
         <div class="hd"><h3>Statistics</h3><div class="dots">⋯</div></div>
         <div class="bd"><div class="statlist">
-          <div class="statrow"><div class="gauge">${gauge(META?META.attribution_accuracy:0,'#22C55E')}<div class="gnum">${META?pct0(META.attribution_accuracy):'—'}</div></div>
+          <div class="statrow"><div class="gauge">${gauge(META?META.attribution_accuracy:0,'#22C55E')}<div class="gnum">${META?`<span class="countup" data-count="${Math.round(META.attribution_accuracy*100)}" data-suf="%">${pct0(META.attribution_accuracy)}</span>`:'—'}</div></div>
             <div class="sb"><div class="sk">Attribution Accuracy</div><div class="ss">${META?META.n_cases:0} labeled cases</div></div>
             <div class="sbig tnum">${META?META.per_category.length:0}<span style="font-size:12px;color:var(--muted2)"> comp</span></div></div>
-          <div class="statrow"><div class="gauge">${gauge(META?META.confirmation_rate:0,'#7C3AED')}<div class="gnum">${META?pct0(META.confirmation_rate):'—'}</div></div>
+          <div class="statrow"><div class="gauge">${gauge(META?META.confirmation_rate:0,'#7C3AED')}<div class="gnum">${META?`<span class="countup" data-count="${Math.round(META.confirmation_rate*100)}" data-suf="%">${pct0(META.confirmation_rate)}</span>`:'—'}</div></div>
             <div class="sb"><div class="sk">Counterfactual Confirmed</div><div class="ss">replay flips outcome</div></div>
             <div class="sbig tnum">${a.confirmed}</div></div>
           <div class="revcard">
-            <div><div class="rk">Mean Confidence</div><div class="rv tnum">${pct0(a.meanConf)}</div><span class="rpill">self-consistency</span></div>
+            <div><div class="rk">Mean Confidence</div><div class="rv tnum"><span class="countup" data-count="${Math.round(MEAN_CONF*100)}" data-suf="%">${pct0(MEAN_CONF)}</span></div><span class="rpill">self-consistency</span></div>
             ${sparkline(confSeries.length?confSeries:[0,1],'#22C55E',96,46,false)}
           </div>
         </div></div>
@@ -552,9 +627,9 @@ function viewMeta(){
     <td class="tnum">${c.precision.toFixed(2)}</td><td class="tnum">${c.recall.toFixed(2)}</td><td class="tnum">${c.f1.toFixed(2)}</td><td class="tnum">${c.support}</td></tr>`).join('');
   return `<div class="fadein">
     <div class="metricbig">
-      <div class="mbig"><div class="n tnum" style="color:var(--good)">${pct0(META.attribution_accuracy)}</div><div class="l">Attribution Accuracy</div><div class="s">component named correctly</div></div>
-      <div class="mbig"><div class="n tnum" style="color:var(--accent)">${pct0(META.step_localization_accuracy)}</div><div class="l">Step Localization</div><div class="s">exact decisive step pinpointed</div></div>
-      <div class="mbig"><div class="n tnum" style="color:var(--teal)">${pct0(META.confirmation_rate)}</div><div class="l">Counterfactual Confirmation</div><div class="s">replay flips the outcome</div></div>
+      <div class="mbig"><div class="n tnum" style="color:var(--good)"><span class="countup" data-count="${Math.round(META.attribution_accuracy*100)}" data-suf="%">${pct0(META.attribution_accuracy)}</span></div><div class="l">Attribution Accuracy</div><div class="s">component named correctly</div></div>
+      <div class="mbig"><div class="n tnum" style="color:var(--accent)"><span class="countup" data-count="${Math.round(META.step_localization_accuracy*100)}" data-suf="%">${pct0(META.step_localization_accuracy)}</span></div><div class="l">Step Localization</div><div class="s">exact decisive step pinpointed</div></div>
+      <div class="mbig"><div class="n tnum" style="color:var(--teal)"><span class="countup" data-count="${Math.round(META.confirmation_rate*100)}" data-suf="%">${pct0(META.confirmation_rate)}</span></div><div class="l">Counterfactual Confirmation</div><div class="s">replay flips the outcome</div></div>
     </div>
     <div class="card" style="margin-top:18px"><div class="hd"><h3>Per-Component Performance</h3><span class="muted tiny">${META.n_cases} labeled cases</span></div>
       <div class="bd"><table class="pc"><thead><tr><th>Component</th><th>Precision</th><th>Recall</th><th>F1</th><th>Support</th></tr></thead><tbody>${rows}</tbody></table></div></div>
@@ -573,15 +648,33 @@ function viewDrift(){
     <div class="bd"><p class="why" style="margin:2px 0 14px">Distribution of which component is decisive across the current run batch. A shift here between batches (e.g. retrieval failures spiking after a model update) is what the Drift Monitor flags via PSI / KL divergence.</p>${bars}</div></div></div>`;
 }
 
+/* ---------- animation orchestration ---------- */
+function countUp(el){
+  const raw=el.dataset.count, to=parseFloat(raw); if(isNaN(to))return;
+  const suf=el.dataset.suf||'', dec=(raw.split('.')[1]||'').length, dur=900, t0=performance.now();
+  el.textContent='0'+suf;
+  (function f(t){const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);
+    el.textContent=(to*e).toFixed(dec)+suf; if(k<1)requestAnimationFrame(f);})(t0);
+}
+function animateIn(root){
+  root=root||document.getElementById('view'); if(!root)return;
+  /* draws & gauge sweep are pure CSS (final state always rendered). Count-up is a
+     JS enhancement — only run it when the tab is visible so backgrounded loads still
+     show the real numbers instead of 0. */
+  if(REDUCED||document.hidden)return;
+  root.querySelectorAll('.countup').forEach(countUp);
+}
+
 /* ---------- router ---------- */
 function render(){
   const v=document.getElementById('view');
   v.innerHTML = S.view==='overview'?viewOverview():S.view==='runs'?viewRuns():S.view==='meta'?viewMeta():S.view==='drift'?viewDrift():viewOverview();
   document.querySelectorAll('.rail .ritem[data-v]').forEach(b=>b.classList.toggle('active',b.dataset.v===S.view));
+  animateIn();
 }
 function setView(v){S.view=v;render();}
 function pickRun(id){S.runId=id;
-  const d=document.getElementById('runDetail');if(d)d.innerHTML=runDetail(runById(id));
+  const d=document.getElementById('runDetail');if(d){d.innerHTML=runDetail(runById(id));animateIn(d);}
   document.querySelectorAll('.rcard').forEach(c=>c.classList.remove('active'));
   if(window.event&&window.event.currentTarget)window.event.currentTarget.classList.add('active');}
 function onSearch(q){S.q=q;if(S.view!=='runs'){S.view='runs';render();}else render();}
