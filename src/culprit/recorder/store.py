@@ -38,7 +38,7 @@ class TrajectoryStore:
         self._init_db()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=5.0)
         conn.row_factory = sqlite3.Row
         return conn
 
@@ -47,10 +47,10 @@ class TrajectoryStore:
             conn.executescript(_SCHEMA)
 
     def save(self, trajectory: Trajectory) -> None:
-        """Persist a trajectory (idempotent on run_id)."""
+        """Persist a trajectory. Raises on duplicate run_id."""
         with closing(self._connect()) as conn, conn:
             conn.execute(
-                "INSERT OR REPLACE INTO trajectories "
+                "INSERT INTO trajectories "
                 "(run_id, ticket_id, final_status, created_at, payload) "
                 "VALUES (?, ?, ?, ?, ?)",
                 (

@@ -164,12 +164,14 @@ class CounterfactualEngine:
         elif suspect.step_type in (StepType.PLANNING, StepType.TOOL_EXECUTION):
             gold = PRODUCT_AREA_TEAM.get((ticket.get("product_area") or "").lower())
             if gold:
+                current_plan = _plan_from_trajectory(trajectory)
+                current_team = current_plan.get("team") if current_plan else None
                 candidates.append(
                     _Candidate(
                         correction={"team": gold},
                         repair=Repair(
                             description=f"Route to {gold} for the ticket's product area.",
-                            edits=[RepairEdit(field="plan.team", to_value=gold)],
+                            edits=[RepairEdit(field="plan.team", from_value=current_team, to_value=gold)],
                         ),
                     )
                 )
@@ -250,3 +252,11 @@ def replace_step_type(suspect: Suspect, step_type: StepType) -> Suspect:
     from dataclasses import replace
 
     return replace(suspect, step_type=step_type)
+
+
+def _plan_from_trajectory(trajectory: Trajectory) -> dict[str, Any] | None:
+    """Get the plan dict from the planning step of a trajectory."""
+    for step in trajectory.steps_of_type(StepType.PLANNING):
+        if isinstance(step.result, dict):
+            return step.result
+    return None

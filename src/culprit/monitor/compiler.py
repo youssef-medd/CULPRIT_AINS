@@ -173,5 +173,9 @@ def compile_checkers(
         if inv.kind == InvariantKind.TOOL_CAPABILITY:
             checkers.append(ToolCapabilityChecker(inv, resolver))
         else:
-            checkers.append(_BUILDERS[inv.kind](inv))
+            builder = _BUILDERS.get(inv.kind)
+            if builder is None:
+                from culprit.contracts.loader import ContractError
+                raise ContractError(f"Unknown invariant kind: {inv.kind}")
+            checkers.append(builder(inv))
     return checkers

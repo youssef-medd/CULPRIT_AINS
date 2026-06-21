@@ -33,9 +33,9 @@ _ACTION_TOOLS = ("set_team", "set_priority", "add_comment")
 
 
 def new_run_id() -> str:
-    """Generate a readable, unique run id like ``run_20260618_143012_a1b2``."""
+    """Generate a readable, unique run id like ``run_20260618_143012_a1b2c3d4``."""
     stamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-    return f"run_{stamp}_{uuid.uuid4().hex[:4]}"
+    return f"run_{stamp}_{uuid.uuid4().hex}"
 
 
 def _status_of(result: dict[str, Any] | None) -> StepStatus:
@@ -137,7 +137,9 @@ def build_trajectory(
     try:
         final_status = RunStatus(raw_status)
     except ValueError:
-        final_status = RunStatus.SUCCEEDED
+        import warnings
+        warnings.warn(f"Unrecognized run status '{raw_status}'; defaulting to ERROR")
+        final_status = RunStatus.ERROR
 
     return Trajectory(
         run_id=run_id,

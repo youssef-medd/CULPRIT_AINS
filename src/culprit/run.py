@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from culprit.attribution import AttributionEngine
-from culprit.config import settings
+from culprit.config import REPO_ROOT, settings
 from culprit.evaluation import JudgeRunner
 from culprit.monitor import build_monitor
 from culprit.recorder import TrajectoryStore, record_run
@@ -30,10 +30,14 @@ from culprit.verdict import VerdictRenderer, VerdictReport
 def load_tickets(path: Path) -> list[dict[str, Any]]:
     """Load tickets from a JSONL file (one ticket per line)."""
     tickets: list[dict[str, Any]] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         line = line.strip()
-        if line:
+        if not line:
+            continue
+        try:
             tickets.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            print(f"warning: skipping malformed JSON on line {i}: {exc}", file=sys.stderr)
     return tickets
 
 
@@ -77,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--tickets",
         type=Path,
-        default=Path("data/synthetic/tickets.jsonl"),
+        default=REPO_ROOT / "data/synthetic/tickets.jsonl",
         help="Path to a JSONL file of tickets to triage and evaluate.",
     )
     parser.add_argument(

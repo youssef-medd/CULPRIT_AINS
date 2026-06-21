@@ -44,7 +44,7 @@ class VerdictRenderer:
 
             return Environment(
                 loader=FileSystemLoader(str(self.templates_dir)),
-                autoescape=select_autoescape(enabled_extensions=()),
+                autoescape=select_autoescape(default_for_string=True, default=True),
                 trim_blocks=False,
                 lstrip_blocks=False,
             )

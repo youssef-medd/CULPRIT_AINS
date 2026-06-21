@@ -14,10 +14,10 @@ from dataclasses import dataclass, field, replace
 
 from culprit.monitor.alerts import DivergenceAlert
 from culprit.schemas.evaluation import EvaluationResult, Evidence, Verdict
-from culprit.schemas.trajectory import StepType, Trajectory
+from culprit.schemas.trajectory import Step, StepType, Trajectory
 
 # Structural violations are deterministic and high-precision.
-_MONITOR_CONFIDENCE = 0.95
+_MONITOR_CONFIDENCE = 1.0
 _LATE = 1 << 30
 
 
@@ -35,8 +35,13 @@ class Suspect:
     sources: tuple[str, ...] = ()
 
 
-def _from_judges(trajectory: Trajectory, evaluation: EvaluationResult) -> dict[str, Suspect]:
-    index = {s.step_id: s for s in trajectory.steps}
+def _build_step_index(trajectory: Trajectory) -> dict[str, Step]:
+    return {s.step_id: s for s in trajectory.steps}
+
+
+def _from_judges(trajectory: Trajectory, evaluation: EvaluationResult, index: dict[str, Step] | None = None) -> dict[str, Suspect]:
+    if index is None:
+        index = _build_step_index(trajectory)
     suspects: dict[str, Suspect] = {}
     for verdict in evaluation.component_verdicts:
         if verdict.verdict != Verdict.FAIL:
@@ -56,9 +61,11 @@ def _from_judges(trajectory: Trajectory, evaluation: EvaluationResult) -> dict[s
 
 
 def _merge_alerts(
-    trajectory: Trajectory, alerts: list[DivergenceAlert], suspects: dict[str, Suspect]
+    trajectory: Trajectory, alerts: list[DivergenceAlert], suspects: dict[str, Suspect],
+    index: dict[str, Step] | None = None,
 ) -> None:
-    index = {s.step_id: s for s in trajectory.steps}
+    if index is None:
+        index = _build_step_index(trajectory)
     for alert in alerts:
         if alert.step_id is None:
             continue
@@ -94,8 +101,9 @@ def select_suspects(
     tau: float = 0.7,
 ) -> list[Suspect]:
     """Return high-confidence suspects, earliest step first."""
-    suspects = _from_judges(trajectory, evaluation)
-    _merge_alerts(trajectory, alerts or [], suspects)
+    index = _build_step_index(trajectory)
+    suspects = _from_judges(trajectory, evaluation, index)
+    _merge_alerts(trajectory, alerts or [], suspects, index)
     high = [s for s in suspects.values() if s.confidence >= tau]
     high.sort(key=lambda s: s.step_index)
     return high
@@ -103,5 +111,6 @@ def select_suspects(
 
 def earliest_failing(trajectory: Trajectory, evaluation: EvaluationResult) -> Suspect | None:
     """Earliest failing component regardless of confidence (E3 last resort)."""
-    suspects = sorted(_from_judges(trajectory, evaluation).values(), key=lambda s: s.step_index)
+    index = _build_step_index(trajectory)
+    suspects = sorted(_from_judges(trajectory, evaluation, index).values(), key=lambda s: s.step_index)
     return suspects[0] if suspects else None

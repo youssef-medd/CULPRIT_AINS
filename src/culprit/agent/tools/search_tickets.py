@@ -64,6 +64,8 @@ def search_tickets(
     degraded path). Always returns ``status == "ok"`` — a wrong filter is a
     *silent* fault, not an error, which is the whole point.
     """
+    if limit < 1:
+        return {"status": "error", "reason": "limit must be >= 1"}
     if product_area:
         pool = [t for t in CORPUS if t["product_area"] == product_area.lower()]
         filtered = True

@@ -67,6 +67,7 @@ class LLMJudgeBackend:
                 model=self.model,
                 max_tokens=600,
                 temperature=temperature,
+                timeout=30,
                 messages=[{"role": "user", "content": prompt}],
             )
             return self._parse(completion.choices[0].message.content or "")
@@ -76,8 +77,11 @@ class LLMJudgeBackend:
     @staticmethod
     def _parse(text: str) -> RawJudgment:
         try:
-            start, end = text.index("{"), text.rindex("}") + 1
-            data = json.loads(text[start:end])
+            import re
+            match = re.search(r"\{[^{}]*\}", text, re.DOTALL)
+            if not match:
+                return RawJudgment(rationale="no JSON object found in response")
+            data = json.loads(match.group(0))
             evidence = [Evidence(**e) for e in data.get("evidence", []) if isinstance(e, dict)]
             return RawJudgment(
                 verdict=Verdict(str(data.get("verdict", "unknown")).lower()),
@@ -351,5 +355,9 @@ def default_backend() -> Any:
 
             return LLMJudgeBackend()
         except ImportError:
-            pass
+            import warnings
+            warnings.warn("NVIDIA_API_KEY is set but openai SDK is not installed; falling back to heuristic backend")
+    else:
+        import warnings
+        warnings.warn("No NVIDIA_API_KEY configured; falling back to heuristic backend")
     return HeuristicJudgeBackend()

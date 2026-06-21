@@ -51,7 +51,7 @@ class JudgeRunner:
         """Sample a judge k times (once if the backend is deterministic)."""
         if getattr(self.backend, "is_deterministic", False):
             return [judge_fn(0.0)]
-        return [judge_fn(0.7) for _ in range(self.samples)]
+        return [judge_fn(0.2 + 0.6 * i / max(self.samples - 1, 1)) for i in range(self.samples)]
 
     def evaluate_step(self, trajectory: Trajectory, step: Step) -> ComponentVerdict:
         """Evaluate a single step, with self-consistency and optional debate."""

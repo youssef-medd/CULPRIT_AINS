@@ -31,7 +31,7 @@ class Settings(BaseSettings):
         env_prefix="CULPRIT_",
         env_file=".env",
         env_file_encoding="utf-8",
-        extra="ignore",
+        extra="forbid",
     )
 
     # --- LLM provider (NVIDIA NIM, OpenAI-compatible API) ---

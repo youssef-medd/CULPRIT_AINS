@@ -33,7 +33,14 @@ class ShadowMonitor:
         return triggered
 
     def run(self, trajectory: Trajectory) -> list[DivergenceAlert]:
-        """Observe every step of a recorded trajectory, in order."""
+        """Observe every step of a recorded trajectory, in order. Resets state."""
+        self.alerts.clear()
+        for c in self._checkers:
+            c.fired = False
+            if hasattr(c, "_before_seen"):
+                c._before_seen = False
+            if hasattr(c, "_available"):
+                c._available = False
         for step in trajectory.ordered():
             self.observe(step)
         return self.alerts
