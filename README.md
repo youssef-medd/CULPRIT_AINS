@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/culprit-banner.png" alt="Culprit" width="860">
+</p>
+
 # Culprit
 
 **When your AI agent fails, Culprit names the component, proves it, and tells you how to fix it.**
