@@ -1,8 +1,8 @@
 'use client'
 
-import { Target, Crosshair, BadgeCheck, DatabaseZap } from 'lucide-react'
+import { Target, Crosshair, BadgeCheck, DatabaseZap, TrendingUp, Grid3x3 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
-import { STEP_TYPE_META } from '@/lib/constants'
+import { STEP_TYPE_META, STEP_TYPES, SOTA_BASELINES } from '@/lib/constants'
 import { formatCategory } from '@/lib/data'
 import type { MetaEval, StepType } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -32,6 +32,7 @@ export function MetaView({ meta }: { meta: MetaEval | null }) {
       icon: <Target className="size-5" />,
       color: 'var(--ok)',
       desc: 'Correct component attributed vs. ground truth',
+      sota: SOTA_BASELINES.attribution_accuracy,
     },
     {
       label: 'Step Localization',
@@ -39,6 +40,7 @@ export function MetaView({ meta }: { meta: MetaEval | null }) {
       icon: <Crosshair className="size-5" />,
       color: 'var(--retrieval)',
       desc: 'Exact decisive step identified',
+      sota: SOTA_BASELINES.step_localization_accuracy,
     },
     {
       label: 'Confirmation Rate',
@@ -46,6 +48,7 @@ export function MetaView({ meta }: { meta: MetaEval | null }) {
       icon: <BadgeCheck className="size-5" />,
       color: 'var(--primary)',
       desc: 'Attributions confirmed by counterfactual',
+      sota: null,
     },
   ]
 
@@ -82,12 +85,32 @@ export function MetaView({ meta }: { meta: MetaEval | null }) {
               <p className="text-sm font-semibold">{s.label}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">{s.desc}</p>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+            <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-secondary">
               <div
                 className="h-full rounded-full transition-all"
                 style={{ width: `${Math.round(s.value * 100)}%`, backgroundColor: s.color }}
               />
+              {s.sota && (
+                <span
+                  className="absolute top-1/2 h-3 w-0.5 -translate-y-1/2 rounded-full bg-foreground/50"
+                  style={{ left: `${Math.round(s.sota.value * 100)}%` }}
+                  title={`${s.sota.label}: ${Math.round(s.sota.value * 100)}%`}
+                />
+              )}
             </div>
+            {s.sota ? (
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="flex items-center gap-1 font-medium text-[var(--ok)]">
+                  <TrendingUp className="size-3.5" />
+                  +{((s.value - s.sota.value) * 100).toFixed(1)} pts
+                </span>
+                <span className="text-muted-foreground">
+                  vs {Math.round(s.sota.value * 100)}% {s.sota.label}
+                </span>
+              </div>
+            ) : (
+              <div className="h-[1.125rem]" aria-hidden />
+            )}
           </Card>
         ))}
       </div>
@@ -135,7 +158,99 @@ export function MetaView({ meta }: { meta: MetaEval | null }) {
           </table>
         </div>
       </Card>
+
+      {meta.confusion && <ConfusionMatrix confusion={meta.confusion} />}
     </div>
+  )
+}
+
+function ConfusionMatrix({ confusion }: { confusion: Record<string, Record<string, number>> }) {
+  const golds = STEP_TYPES.filter((c) => c in confusion)
+  const hasNone = Object.values(confusion).some((row) => 'none' in row)
+  const preds: string[] = [...STEP_TYPES.filter((c) => golds.some((g) => c in confusion[g])), ...(hasNone ? ['none'] : [])]
+
+  const label = (c: string) => (c in STEP_TYPE_META ? STEP_TYPE_META[c as StepType].label : formatCategory(c))
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+        <span className="flex size-7 items-center justify-center rounded-md bg-secondary text-muted-foreground">
+          <Grid3x3 className="size-4" />
+        </span>
+        <div>
+          <h3 className="text-sm font-semibold">Confusion Matrix</h3>
+          <p className="text-xs text-muted-foreground">
+            Rows = ground-truth component · columns = what CULPRIT attributed · diagonal = correct
+          </p>
+        </div>
+      </div>
+      <div className="overflow-x-auto p-5">
+        <table className="w-full min-w-[520px] border-separate border-spacing-1 text-sm">
+          <thead>
+            <tr>
+              <th className="px-2 py-1.5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Gold ╲ Pred
+              </th>
+              {preds.map((p) => (
+                <th key={p} className="px-2 py-1.5 text-center text-xs font-medium text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className="size-2 rounded-full"
+                      style={{ backgroundColor: p in STEP_TYPE_META ? STEP_TYPE_META[p as StepType].color : 'var(--muted-foreground)' }}
+                    />
+                    {label(p)}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {golds.map((g) => {
+              const row = confusion[g]
+              const rowTotal = Object.values(row).reduce((a, b) => a + b, 0) || 1
+              return (
+                <tr key={g}>
+                  <td className="px-2 py-1.5 text-xs font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <span className="size-2.5 rounded-full" style={{ backgroundColor: STEP_TYPE_META[g as StepType].color }} />
+                      {label(g)}
+                    </span>
+                  </td>
+                  {preds.map((p) => {
+                    const count = row[p] ?? 0
+                    const isDiag = g === p
+                    const intensity = count / rowTotal
+                    const base = isDiag ? 'var(--ok)' : 'var(--error)'
+                    const bg = count === 0
+                      ? 'transparent'
+                      : `color-mix(in oklch, ${base} ${Math.round(12 + intensity * 60)}%, transparent)`
+                    return (
+                      <td key={p} className="p-0">
+                        <div
+                          className={cn(
+                            'flex h-11 items-center justify-center rounded-md font-mono tabular-nums',
+                            count === 0 ? 'text-muted-foreground/40' : 'font-semibold text-foreground',
+                          )}
+                          style={{ backgroundColor: bg, border: count === 0 ? '1px dashed var(--border)' : 'none' }}
+                          title={`${label(g)} → ${label(p)}: ${count}`}
+                        >
+                          {count}
+                        </div>
+                      </td>
+                    )
+                  })}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Green diagonal = correct attributions. Off-diagonal red cells show where the decisive
+          component was mistaken for another; a <span className="font-medium text-foreground">none</span> column
+          marks runs left unattributed.
+        </p>
+      </div>
+    </Card>
   )
 }
 
