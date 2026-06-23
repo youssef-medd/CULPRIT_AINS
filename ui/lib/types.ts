@@ -96,6 +96,8 @@ export interface MetaEval {
   step_localization_accuracy: number
   confirmation_rate: number
   per_category: PerCategory[]
+  /** gold component -> { predicted component (or "none") -> count } */
+  confusion?: Record<string, Record<string, number>>
 }
 
 export interface CulpritData {
