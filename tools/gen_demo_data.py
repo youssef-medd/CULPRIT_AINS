@@ -1,4 +1,4 @@
-"""Generate demo data for the standalone dashboard (local, not committed).
+"""Generate demo data for the CULPRIT dashboard (local, not committed).
 
 Produces *real* attributions — faults are injected by the existing fault
 injector and the verdicts are computed by the real attribution engine (heuristic
@@ -12,7 +12,7 @@ Run from the repo root:
 
 Writes:
 * data/outputs/<run_id>.json + .md   — the same verdict artifacts run.py writes
-* ui/dashboard_data.js               — window.CULPRIT_DATA bundle the HTML reads
+* ui/data/culprit-data.json           — JSON bundle the Next.js dashboard reads
 """
 
 from __future__ import annotations
@@ -108,16 +108,11 @@ def main() -> int:
         "runs": runs,
     }
 
-    out_js = REPO_ROOT / "ui" / "dashboard_data.js"
-    out_js.write_text(
-        "window.CULPRIT_DATA = " + json.dumps(bundle, indent=2, default=str) + ";",
-        encoding="utf-8",
-    )
-    (REPO_ROOT / "ui" / "dashboard_data.json").write_text(
-        json.dumps(bundle, indent=2, default=str), encoding="utf-8"
-    )
+    out_json = REPO_ROOT / "ui" / "data" / "culprit-data.json"
+    out_json.parent.mkdir(parents=True, exist_ok=True)
+    out_json.write_text(json.dumps(bundle, indent=2, default=str), encoding="utf-8")
     n_fail = sum(1 for r in runs if r["attribution"]["end_to_end_verdict"] == "fail")
-    print(f"\nWrote {len(runs)} runs ({n_fail} fail) -> {out_js}")
+    print(f"\nWrote {len(runs)} runs ({n_fail} fail) -> {out_json}")
     return 0
 
 
