@@ -137,31 +137,31 @@
 /* Light mode — when dark class is NOT present */
 html:not(.dark) {
   color-scheme: light;
-  --background: #f8f9fa;
-  --foreground: #1a1a1a;
+  --background: #f4f0ff;
+  --foreground: #1a1a2e;
 
-  --card: #ffffff;
-  --card-foreground: #1a1a1a;
+  --card: rgba(255, 255, 255, 0.75);
+  --card-foreground: #1a1a2e;
   --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
+  --popover-foreground: #1a1a2e;
 
-  --primary: #2563eb;
+  --primary: #8b5cf6;
   --primary-foreground: #ffffff;
 
-  --secondary: #f0f2f5;
-  --secondary-foreground: #4a5568;
+  --secondary: #ede9fe;
+  --secondary-foreground: #4a3f6b;
 
-  --muted: #e5e7eb;
+  --muted: #e9e4f5;
   --muted-foreground: #6b7280;
 
-  --accent: #2563eb;
+  --accent: #a78bfa;
   --accent-foreground: #ffffff;
 
   --destructive: #dc2626;
 
-  --border: rgba(0, 0, 0, 0.08);
-  --input: rgba(0, 0, 0, 0.12);
-  --ring: #2563eb;
+  --border: rgba(139, 92, 246, 0.12);
+  --input: rgba(139, 92, 246, 0.15);
+  --ring: #8b5cf6;
 
   /* Step-type identity — light mode has same vibrant colors */
   --retrieval: #3b82f6;
@@ -176,15 +176,15 @@ html:not(.dark) {
   --pass: #10b981;
   --fail: #dc2626;
 
-  --chart-1: #3b82f6;
-  --chart-2: #8b5cf6;
+  --chart-1: #8b5cf6;
+  --chart-2: #a78bfa;
   --chart-3: #10b981;
   --chart-4: #f59e0b;
-  --chart-5: #2563eb;
+  --chart-5: #6366f1;
 
-  --sidebar: #f3f4f6;
-  --sidebar-foreground: #1a1a1a;
-  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --sidebar: #ede9fe;
+  --sidebar-foreground: #1a1a2e;
+  --sidebar-border: rgba(139, 92, 246, 0.1);
 }
 
 /* Explicit dark mode class override */
@@ -245,6 +245,10 @@ html:not(.dark) {
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+  html:not(.dark) body {
+    background: radial-gradient(ellipse at center, #d8b4fe 0%, #ede9fe 45%, #f4f0ff 75%, #ffffff 100%);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
