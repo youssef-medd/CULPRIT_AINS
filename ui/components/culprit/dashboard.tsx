@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Crosshair, LayoutDashboard, ListTree, GaugeCircle, Activity } from 'lucide-react'
+import { LayoutDashboard, ListTree, GaugeCircle, Activity } from 'lucide-react'
+import { CulpritLogo } from './culprit-logo'
 import { cn } from '@/lib/utils'
 import { computeOverview, getData } from '@/lib/data'
 import { Hero } from './hero'
@@ -41,9 +42,7 @@ export function Dashboard() {
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
-            <span className="flex size-7 items-center justify-center rounded border border-primary/30 bg-primary/10 text-primary">
-              <Crosshair className="size-4" strokeWidth={1.5} />
-            </span>
+            <CulpritLogo className="size-7" />
             <div className="leading-none">
               <p className="text-xs font-semibold uppercase tracking-wide text-foreground">CULPRIT</p>
               <p className="hidden text-xs text-muted-foreground sm:block">

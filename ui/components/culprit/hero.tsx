@@ -4,6 +4,7 @@ import { SplineScene } from '@/components/ui/splite'
 import { Spotlight } from '@/components/ui/spotlight'
 import { Card } from '@/components/ui/card'
 import { Crosshair, GitBranch, ShieldCheck } from 'lucide-react'
+import { CulpritLogo } from './culprit-logo'
 
 interface HeroProps {
   totalRuns: number
@@ -21,9 +22,7 @@ export function Hero({ totalRuns, failures, attributionAccuracy }: HeroProps) {
         {/* Left content */}
         <div className="relative z-10 flex flex-1 flex-col justify-center gap-5 p-6 md:p-10">
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Crosshair className="size-4" />
-            </span>
+            <CulpritLogo className="size-7" />
             <span className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
               Culprit
             </span>
