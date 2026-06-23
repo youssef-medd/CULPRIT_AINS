@@ -41,6 +41,19 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Next.js build artifacts
+node_modules/
+.next/
+
+# Knowledge graph database (code-review-graph MCP)
+.graph/
+code-review-graph/
+.code-review-graph/
+
+# Build artifacts
+*.tsbuildinfo
+pnpm-workspace.yaml
+
 # Installed Claude Code skills (hve-spielberg video pipeline, etc.)
 .agents/
 .claude/skills/
