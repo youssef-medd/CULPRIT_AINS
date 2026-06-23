@@ -1,0 +1,21 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #0f1117; }
+      .fg { fill: #ffffff; }
+      .ring { stroke: #ffffff; }
+    }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #ffffff; }
+      .fg { fill: #0f1117; }
+      .ring { stroke: #0f1117; }
+    }
+  </style>
+  <rect class="bg" width="180" height="180" rx="37" />
+  <circle cx="90" cy="90" r="38" class="ring" stroke-width="6" fill="none" />
+  <line x1="90" y1="38" x2="90" y2="56" class="ring" stroke-width="5" stroke-linecap="round" />
+  <line x1="90" y1="124" x2="90" y2="142" class="ring" stroke-width="5" stroke-linecap="round" />
+  <line x1="38" y1="90" x2="56" y2="90" class="ring" stroke-width="5" stroke-linecap="round" />
+  <line x1="124" y1="90" x2="142" y2="90" class="ring" stroke-width="5" stroke-linecap="round" />
+  <text x="90" y="100" text-anchor="middle" class="fg" font-family="system-ui" font-weight="700" font-size="38">C</text>
+</svg>

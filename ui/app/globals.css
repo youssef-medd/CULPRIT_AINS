@@ -1,0 +1,295 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-dm-sans), 'DM Sans Fallback', system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'JetBrains Mono Fallback', ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* CULPRIT semantic identity */
+  --color-retrieval: var(--retrieval);
+  --color-planning: var(--planning);
+  --color-tool: var(--tool);
+  --color-synthesis: var(--synthesis);
+  --color-ok: var(--ok);
+  --color-error: var(--error);
+  --color-skipped: var(--skipped);
+  --color-pass: var(--pass);
+  --color-fail: var(--fail);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+
+  --animate-spotlight: spotlight 2.4s ease 0.5s 1 forwards;
+}
+
+@keyframes spotlight {
+  0% {
+    opacity: 0;
+    transform: translate(-72%, -62%) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -40%) scale(1);
+  }
+}
+
+:root {
+  color-scheme: dark;
+  --radius: 0.5rem;
+
+  /* Clean dark base inspired by NeuroBank — deep navy with excellent contrast */
+  --background: #0f1117;
+  --foreground: #e4e6eb;
+
+  /* Cards — clean surfaces with subtle definition */
+  --card: #161b22;
+  --card-foreground: #e4e6eb;
+  --popover: #1c2128;
+  --popover-foreground: #e4e6eb;
+
+  /* Primary — vibrant blue accent (NeuroBank-inspired) */
+  --primary: #2563eb;
+  --primary-foreground: #0f1117;
+
+  /* Secondary — neutral gray for UI scaffolding */
+  --secondary: #21262d;
+  --secondary-foreground: #8b949e;
+
+  /* Muted — subdued grays for secondary content */
+  --muted: #1f2937;
+  --muted-foreground: #6e7681;
+
+  /* Accent — complementary blue-purple for highlights */
+  --accent: #2563eb;
+  --accent-foreground: #e4e6eb;
+
+  /* Destructive — clean red for errors */
+  --destructive: #da3633;
+
+  /* Borders and input — minimal, clean */
+  --border: rgba(228, 230, 235, 0.1);
+  --input: rgba(228, 230, 235, 0.15);
+  --ring: #2563eb;
+
+  /* Step-type identity — professional colors with good saturation */
+  --retrieval: #3b82f6;
+  --planning: #8b5cf6;
+  --tool: #10b981;
+  --synthesis: #f59e0b;
+
+  /* Status identity — clear, professional */
+  --ok: #10b981;
+  --error: #da3633;
+  --skipped: #6e7681;
+
+  /* Verdict identity */
+  --pass: #10b981;
+  --fail: #da3633;
+
+  --chart-1: #3b82f6;
+  --chart-2: #8b5cf6;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #2563eb;
+
+  /* Sidebar — clean dark aesthetic */
+  --sidebar: #0d1117;
+  --sidebar-foreground: #e4e6eb;
+  --sidebar-border: rgba(228, 230, 235, 0.08);
+}
+
+/* Light mode — when dark class is NOT present */
+html:not(.dark) {
+  color-scheme: light;
+  --background: #f8f9fa;
+  --foreground: #1a1a1a;
+
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f0f2f5;
+  --secondary-foreground: #4a5568;
+
+  --muted: #e5e7eb;
+  --muted-foreground: #6b7280;
+
+  --accent: #2563eb;
+  --accent-foreground: #ffffff;
+
+  --destructive: #dc2626;
+
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.12);
+  --ring: #2563eb;
+
+  /* Step-type identity — light mode has same vibrant colors */
+  --retrieval: #3b82f6;
+  --planning: #8b5cf6;
+  --tool: #10b981;
+  --synthesis: #f59e0b;
+
+  --ok: #10b981;
+  --error: #dc2626;
+  --skipped: #9ca3af;
+
+  --pass: #10b981;
+  --fail: #dc2626;
+
+  --chart-1: #3b82f6;
+  --chart-2: #8b5cf6;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #2563eb;
+
+  --sidebar: #f3f4f6;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+}
+
+/* Explicit dark mode class override */
+.dark {
+  color-scheme: dark;
+  --background: #0f1117;
+  --foreground: #e4e6eb;
+
+  --card: #161b22;
+  --card-foreground: #e4e6eb;
+  --popover: #1c2128;
+  --popover-foreground: #e4e6eb;
+
+  --primary: #2563eb;
+  --primary-foreground: #0f1117;
+
+  --secondary: #21262d;
+  --secondary-foreground: #8b949e;
+
+  --muted: #1f2937;
+  --muted-foreground: #6e7681;
+
+  --accent: #2563eb;
+  --accent-foreground: #e4e6eb;
+
+  --destructive: #da3633;
+
+  --border: rgba(228, 230, 235, 0.1);
+  --input: rgba(228, 230, 235, 0.15);
+  --ring: #2563eb;
+
+  --retrieval: #3b82f6;
+  --planning: #8b5cf6;
+  --tool: #10b981;
+  --synthesis: #f59e0b;
+
+  --ok: #10b981;
+  --error: #da3633;
+  --skipped: #6e7681;
+
+  --pass: #10b981;
+  --fail: #da3633;
+
+  --chart-1: #3b82f6;
+  --chart-2: #8b5cf6;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #2563eb;
+
+  --sidebar: #0d1117;
+  --sidebar-foreground: #e4e6eb;
+  --sidebar-border: rgba(228, 230, 235, 0.08);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@layer components {
+  .card-refined {
+    @apply rounded-md border border-border bg-card p-6 text-card-foreground shadow-card;
+  }
+
+  .shadow-refined {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+
+  .shadow-sm-refined {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .shadow-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@layer utilities {
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(228, 230, 235, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(228, 230, 235, 0.03) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+}
+
+/* Spline loader */
+.loader {
+  width: 28px;
+  height: 28px;
+  border: 3px solid oklch(1 0 0 / 15%);
+  border-bottom-color: var(--primary);
+  border-radius: 50%;
+  display: inline-block;
+  animation: loader-rotate 1s linear infinite;
+}
+@keyframes loader-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
