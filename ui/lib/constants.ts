@@ -44,6 +44,19 @@ export const VERDICT_META: Record<Verdict, { label: string; color: string }> = {
   fail: { label: 'Fail', color: 'var(--fail)' },
 }
 
+/**
+ * Published state-of-the-art baselines CULPRIT is benchmarked against.
+ * - attribution: Who&When (Zhang et al., ICML 2025) best automated component attribution ~53.5%
+ * - step localization: best automated decisive-step pinpointing ~14.2%
+ */
+export const SOTA_BASELINES: Record<
+  'attribution_accuracy' | 'step_localization_accuracy',
+  { value: number; label: string }
+> = {
+  attribution_accuracy: { value: 0.535, label: 'Who&When SOTA' },
+  step_localization_accuracy: { value: 0.142, label: 'published SOTA' },
+}
+
 export function stepColor(type: StepType | string | null | undefined): string {
   if (type && type in STEP_TYPE_META) return STEP_TYPE_META[type as StepType].color
   return 'var(--muted-foreground)'
