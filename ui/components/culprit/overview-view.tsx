@@ -16,6 +16,7 @@ import {
 } from 'recharts'
 import { Activity, AlertTriangle, GitBranch, ShieldCheck, TrendingDown } from 'lucide-react'
 import { Card } from '@/components/ui/card'
+import { SpotlightCard } from '@/components/ui/spotlight-card'
 import { KpiCard } from './kpi-card'
 import { ChartTooltip } from './chart-tooltip'
 import { STEP_TYPE_META } from '@/lib/constants'
@@ -222,20 +223,19 @@ export function OverviewView({ overview }: { overview: Overview }) {
         </Card>
       </div>
 
-      {/* Top failure categories */}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Top Failure Categories
         </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
           {topCategories.map((cat, i) => {
-            const color = STEP_TYPE_META[cat.component].color
+            const color = `var(--${cat.component})`
             return (
-              <Card key={cat.category} className="relative overflow-hidden p-5">
-                <span
-                  className="absolute inset-x-0 top-0 h-1"
-                  style={{ backgroundColor: color }}
-                />
+              <SpotlightCard
+                key={cat.category}
+                className="p-6 flex flex-col gap-4"
+                spotlightColor={spotlightRGBA(cat.component)}
+              >
                 <div className="flex items-start justify-between">
                   <span className="font-mono text-2xl font-semibold text-muted-foreground/40">
                     #{i + 1}
@@ -250,18 +250,32 @@ export function OverviewView({ overview }: { overview: Overview }) {
                     {STEP_TYPE_META[cat.component].label}
                   </span>
                 </div>
-                <p className="mt-2 text-base font-semibold">{formatCategory(cat.category)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {cat.count} attributed failure{cat.count === 1 ? '' : 's'}
-                </p>
-              </Card>
+                <div>
+                  <p className="text-base font-semibold">{formatCategory(cat.category)}</p>
+                  <p className="text-sm text-neutral-400">
+                    {cat.count} attributed failure{cat.count === 1 ? '' : 's'}
+                  </p>
+                </div>
+              </SpotlightCard>
             )
           })}
           {topCategories.length === 0 && (
-            <Card className="p-5 text-sm text-muted-foreground">No failures attributed.</Card>
+            <SpotlightCard className="col-span-full p-5 text-sm text-muted-foreground">
+              No failures attributed.
+            </SpotlightCard>
           )}
         </div>
       </div>
     </div>
   )
+}
+
+function spotlightRGBA(component: string): string {
+  const map: Record<string, string> = {
+    retrieval: 'rgba(59, 130, 246, 0.2)',
+    planning: 'rgba(139, 92, 246, 0.2)',
+    tool: 'rgba(16, 185, 129, 0.2)',
+    synthesis: 'rgba(245, 158, 11, 0.2)',
+  }
+  return map[component] ?? 'rgba(255, 255, 255, 0.15)'
 }

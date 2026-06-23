@@ -59,7 +59,7 @@ export function Hero({ totalRuns, failures, attributionAccuracy }: HeroProps) {
         {/* Right content — interactive 3D scene */}
         <div className="relative min-h-[180px] flex-1">
           <SplineScene
-            scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+            scene="/scene.splinecode"
             className="h-full w-full"
           />
           {/* fade the scene into the card on small screens */}

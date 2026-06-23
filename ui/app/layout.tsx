@@ -1,16 +1,16 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { DM_Sans, JetBrains_Mono } from 'next/font/google'
+import { Space_Grotesk, Fira_Code } from 'next/font/google'
 import { ThemeProvider } from '@/lib/theme-context'
 import './globals.css'
 
-const dmSans = DM_Sans({
-  variable: '--font-dm-sans',
+const spaceGrotesk = Space_Grotesk({
+  variable: '--font-space-grotesk',
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
 })
-const jetBrainsMono = JetBrains_Mono({
-  variable: '--font-jetbrains-mono',
+const firaCode = Fira_Code({
+  variable: '--font-fira-code',
   subsets: ['latin'],
 })
 
@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`bg-background ${dmSans.variable} ${jetBrainsMono.variable}`}
+      className={`bg-background ${spaceGrotesk.variable} ${firaCode.variable}`}
       suppressHydrationWarning
     >
       <body className="bg-background font-sans antialiased">

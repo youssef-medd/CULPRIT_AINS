@@ -76,15 +76,13 @@ export function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">
-        {tab === 'overview' && (
-          <div className="mb-6">
-            <Hero
-              totalRuns={overview.totalRuns}
-              failures={overview.failures}
-              attributionAccuracy={overview.attributionAccuracy}
-            />
-          </div>
-        )}
+        <div className={cn('mb-6', tab !== 'overview' && 'hidden')}>
+          <Hero
+            totalRuns={overview.totalRuns}
+            failures={overview.failures}
+            attributionAccuracy={overview.attributionAccuracy}
+          />
+        </div>
 
         <AnimatePresence mode="wait">
           <motion.div
