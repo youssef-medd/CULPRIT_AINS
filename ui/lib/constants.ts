@@ -42,6 +42,7 @@ export const STATUS_META: Record<StepStatus, { label: string; color: string }> =
 export const VERDICT_META: Record<Verdict, { label: string; color: string }> = {
   pass: { label: 'Pass', color: 'var(--pass)' },
   fail: { label: 'Fail', color: 'var(--fail)' },
+  unknown: { label: 'Unknown', color: 'var(--skipped)' },
 }
 
 /**

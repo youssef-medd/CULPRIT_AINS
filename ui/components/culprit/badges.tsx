@@ -20,7 +20,7 @@ export function StepTypeBadge({
   className?: string
   size?: 'sm' | 'md'
 }) {
-  const meta = STEP_TYPE_META[type]
+  const meta = STEP_TYPE_META[type] ?? { label: type, color: 'var(--muted-foreground)', description: '' }
   return (
     <span
       className={cn(
@@ -41,7 +41,7 @@ export function StepTypeBadge({
 }
 
 export function StatusBadge({ status, className }: { status: StepStatus; className?: string }) {
-  const meta = STATUS_META[status]
+  const meta = STATUS_META[status] ?? { label: status, color: 'var(--muted-foreground)' }
   return (
     <span
       className={cn(
@@ -69,7 +69,7 @@ export function VerdictBadge({
   className?: string
   size?: 'sm' | 'md'
 }) {
-  const meta = VERDICT_META[verdict]
+  const meta = VERDICT_META[verdict] ?? VERDICT_META.unknown
   return (
     <span
       className={cn(

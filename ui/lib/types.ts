@@ -1,6 +1,6 @@
 export type StepType = 'retrieval' | 'planning' | 'tool_execution' | 'synthesis'
 export type StepStatus = 'ok' | 'error' | 'skipped'
-export type Verdict = 'pass' | 'fail'
+export type Verdict = 'pass' | 'fail' | 'unknown'
 
 export interface Evidence {
   field: string
@@ -21,10 +21,10 @@ export interface CounterfactualRepair {
 
 export interface Counterfactual {
   performed: boolean
-  result: string
+  result: string | null
   confirms_attribution: boolean
   minimal: boolean
-  repair: CounterfactualRepair
+  repair: CounterfactualRepair | null
 }
 
 export interface Attribution {

@@ -15,7 +15,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { STEP_TYPE_META, STEP_TYPES } from '@/lib/constants'
+import { STEP_TYPE_META, STEP_TYPES, VERDICT_META } from '@/lib/constants'
 import { formatCategory } from '@/lib/data'
 import type { Run, StepType } from '@/lib/types'
 import { StepTypeBadge, VerdictBadge, MetricBadge } from './badges'
@@ -23,7 +23,7 @@ import { TraceTimeline } from './trace-timeline'
 
 export function RunsView({ runs }: { runs: Run[] }) {
   const [query, setQuery] = useState('')
-  const [verdictFilter, setVerdictFilter] = useState<'all' | 'pass' | 'fail'>('all')
+  const [verdictFilter, setVerdictFilter] = useState<'all' | 'pass' | 'fail' | 'unknown'>('all')
   const [componentFilter, setComponentFilter] = useState<'all' | StepType>('all')
   const [selectedId, setSelectedId] = useState<string>(runs[0]?.run_id ?? '')
 
@@ -77,6 +77,13 @@ export function RunsView({ runs }: { runs: Run[] }) {
             color="var(--pass)"
           >
             Pass
+          </FilterChip>
+          <FilterChip
+            active={verdictFilter === 'unknown'}
+            onClick={() => setVerdictFilter('unknown')}
+            color="var(--skipped)"
+          >
+            Unknown
           </FilterChip>
           <span className="mx-1 h-4 w-px bg-border" />
           <FilterChip active={componentFilter === 'all'} onClick={() => setComponentFilter('all')}>
@@ -163,8 +170,8 @@ export function RunsView({ runs }: { runs: Run[] }) {
 
 function RunDetail({ run }: { run: Run }) {
   const a = run.attribution
-  const failed = a.end_to_end_verdict === 'fail'
-  const accent = a.decisive_step_type ? STEP_TYPE_META[a.decisive_step_type].color : 'var(--pass)'
+  const verdictColor = VERDICT_META[a.end_to_end_verdict].color
+  const accent = a.decisive_step_type ? STEP_TYPE_META[a.decisive_step_type].color : verdictColor
 
   return (
     <>
@@ -172,12 +179,12 @@ function RunDetail({ run }: { run: Run }) {
       <Card
         className="relative overflow-hidden p-5"
         style={{
-          backgroundColor: `color-mix(in oklch, ${failed ? 'var(--fail)' : 'var(--pass)'} 7%, var(--card))`,
+          backgroundColor: `color-mix(in oklch, ${verdictColor} 7%, var(--card))`,
         }}
       >
         <span
           className="absolute inset-y-0 left-0 w-1"
-          style={{ backgroundColor: failed ? 'var(--fail)' : 'var(--pass)' }}
+          style={{ backgroundColor: verdictColor }}
         />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
@@ -259,9 +266,11 @@ function RunDetail({ run }: { run: Run }) {
                     )}
                     Minimal repair
                   </span>
-                  <span>
-                    Repair:                     <span className="font-mono text-foreground/80">{a.counterfactual.repair.description}</span>
-                  </span>
+                  {a.counterfactual.repair && (
+                    <span>
+                      Repair:                     <span className="font-mono text-foreground/80">{a.counterfactual.repair.description}</span>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
