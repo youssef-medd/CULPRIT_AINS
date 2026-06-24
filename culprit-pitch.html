@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CULPRIT — AI Agent Fault Attribution</title>
+
+    <!-- Fonts: Archivo Black for display, Space Grotesk for body, JetBrains Mono for code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (THEME)
+           CULPRIT — Forensic dark theme with amber accent
+           =========================================== */
+        :root {
+            /* Colors */
+            --bg-primary: #0f1117;
+            --bg-secondary: #161821;
+            --bg-card: #1c1f2b;
+            --text-primary: #f0f0f5;
+            --text-secondary: #8892a6;
+            --text-muted: #565f73;
+            --accent: #FF6B35;
+            --accent-glow: rgba(255, 107, 53, 0.15);
+            --accent-dim: rgba(255, 107, 53, 0.4);
+            --pass: #39d353;
+            --fail: #f85149;
+            --unknown: #d29922;
+            --evidence: #58a6ff;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-accent: rgba(255, 107, 53, 0.25);
+
+            /* Typography */
+            --font-display: 'Archivo Black', sans-serif;
+            --font-body: 'Space Grotesk', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --title-size: 88px;
+            --subtitle-size: 32px;
+            --heading-size: 52px;
+            --body-size: 24px;
+            --small-size: 18px;
+            --mono-size: 20px;
+
+            /* Spacing */
+            --slide-padding: 80px;
+            --content-gap: 28px;
+
+            /* Animation */
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.7s;
+            --duration-slow: 1.2s;
+        }
+
+        /* ===========================================
+           RESET
+           =========================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ===========================================
+           FIXED 16:9 STAGE: MANDATORY BASE STYLES
+           =========================================== */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+
+        .deck-viewport {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+
+        .deck-stage {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            transform-origin: 0 0;
+            background: var(--bg-primary);
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            display: block;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            background: var(--bg-primary);
+        }
+
+        .slide.active,
+        .slide.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 1;
+        }
+
+        img, video, canvas, svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .deck-controls {
+            position: fixed;
+            left: 50%;
+            bottom: 22px;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        @media print {
+            html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+            .deck-viewport { position: static; overflow: visible; background: #fff; }
+            .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+            .slide { position: relative; display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+            .slide:last-child { break-after: auto; page-break-after: auto; }
+            .deck-controls { display: none !important; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+        }
+
+        /* ===========================================
+           GRID PATTERN BACKGROUND
+           =========================================== */
+        .grid-bg {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        /* ===========================================
+           GLOW ORB — atmospheric depth
+           =========================================== */
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        /* ===========================================
+           ANIMATIONS — Reveal on slide enter
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        /* Scale-in variant */
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.92);
+            transition: opacity var(--duration-slow) var(--ease-out-expo),
+                        transform var(--duration-slow) var(--ease-out-expo);
+        }
+        .slide.visible .reveal-scale {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* ===========================================
+           SLIDE LAYOUT UTILITIES
+           =========================================== */
+        .slide-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            padding: var(--slide-padding);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        .slide-number {
+            position: absolute;
+            top: 50px;
+            left: 80px;
+            font-family: var(--font-mono);
+            font-size: 16px;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+        }
+
+        .slide-tag {
+            position: absolute;
+            top: 50px;
+            right: 80px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            color: var(--accent);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* ===========================================
+           TYPOGRAPHY
+           =========================================== */
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            line-height: 1.05;
+            color: var(--text-primary);
+            letter-spacing: -2px;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--heading-size);
+            line-height: 1.1;
+            color: var(--text-primary);
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+
+        h3 {
+            font-family: var(--font-body);
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        p {
+            font-family: var(--font-body);
+            font-size: var(--body-size);
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        .lead {
+            font-size: var(--subtitle-size);
+            color: var(--text-secondary);
+            line-height: 1.4;
+            font-weight: 400;
+        }
+
+        .accent { color: var(--accent); }
+        .pass { color: var(--pass); }
+        .fail { color: var(--fail); }
+        .evidence { color: var(--evidence); }
+
+        code, .mono {
+            font-family: var(--font-mono);
+            font-size: var(--mono-size);
+            color: var(--evidence);
+        }
+
+        /* ===========================================
+           CARDS
+           =========================================== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-accent {
+            border-color: var(--border-accent);
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(255,107,53,0.04) 100%);
+        }
+
+        .card-red {
+            border-color: rgba(248, 81, 73, 0.3);
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(248,81,73,0.06) 100%);
+        }
+
+        /* ===========================================
+           BADGES / PILLS
+           =========================================== */
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 100px;
+            font-family: var(--font-mono);
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .pill-accent {
+            background: var(--accent-glow);
+            color: var(--accent);
+            border: 1px solid var(--accent-dim);
+        }
+
+        .pill-pass {
+            background: rgba(57, 211, 83, 0.12);
+            color: var(--pass);
+            border: 1px solid rgba(57, 211, 83, 0.3);
+        }
+
+        .pill-fail {
+            background: rgba(248, 81, 73, 0.12);
+            color: var(--fail);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+        }
+
+        /* ===========================================
+           FLOW DIAGRAM ELEMENTS
+           =========================================== */
+        .flow-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .flow-node {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 28px;
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .flow-node h4 {
+            font-family: var(--font-body);
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .flow-node p {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .flow-arrow {
+            color: var(--accent);
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        /* ===========================================
+           STAT BLOCKS
+           =========================================== */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: 64px;
+            color: var(--accent);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-family: var(--font-body);
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        /* ===========================================
+           CODE BLOCK
+           =========================================== */
+        .code-block {
+            background: #0a0c12;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 28px;
+            font-family: var(--font-mono);
+            font-size: 17px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            overflow: hidden;
+        }
+
+        .code-block .kw { color: var(--accent); }
+        .code-block .str { color: var(--pass); }
+        .code-block .var { color: var(--evidence); }
+        .code-block .comment { color: var(--text-muted); }
+
+        /* ===========================================
+           EVIDENCE TABLE
+           =========================================== */
+        .evidence-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-body);
+        }
+
+        .evidence-table th {
+            text-align: left;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            color: var(--text-muted);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .evidence-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 19px;
+            color: var(--text-secondary);
+        }
+
+        .evidence-table td:first-child {
+            font-family: var(--font-mono);
+            font-size: 16px;
+            color: var(--evidence);
+        }
+
+        /* ===========================================
+           PROGRESS BAR (outside stage)
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent);
+            z-index: 1000;
+            transition: width 0.4s var(--ease-out-expo);
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 16px;
+            right: 24px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            color: var(--text-muted);
+            z-index: 1000;
+        }
+
+        /* ===========================================
+           DECISIVE NODE PULSE
+           =========================================== */
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.4); }
+            50% { box-shadow: 0 0 0 16px rgba(248, 81, 73, 0); }
+        }
+
+        .pulse-node {
+            animation: pulse-red 2s ease-in-out infinite;
+        }
+
+        /* ===========================================
+           CULPRIT LOGO
+           =========================================== */
+        .logo-mark {
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-mark .logo-c {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent) 0%, #ff8a5b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 34px;
+            color: var(--bg-primary);
+        }
+
+        .logo-mark .logo-text {
+            font-family: var(--font-display);
+            font-size: 36px;
+            color: var(--text-primary);
+            letter-spacing: -1px;
+        }
+
+        /* ===========================================
+           INLINE EDITING
+           =========================================== */
+        .edit-hotzone {
+            position: fixed; top: 0; left: 0;
+            width: 80px; height: 80px;
+            z-index: 10000; cursor: pointer;
+        }
+        .edit-toggle {
+            position: fixed; top: 16px; left: 16px;
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .edit-toggle.show, .edit-toggle.active {
+            opacity: 1; pointer-events: auto;
+        }
+        [contenteditable="true"] {
+            outline: 2px dashed var(--accent);
+            outline-offset: 4px;
+            border-radius: 4px;
+            cursor: text;
+        }
+    </style>
+</head>
+<body>
+    <div class="deck-viewport">
+        <main class="deck-stage" id="deckStage">
+
+            <!-- ============================================
+                 SLIDE 1 — TITLE
+                 ============================================ -->
+            <section class="slide active">
+                <div class="grid-bg"></div>
+                <div class="glow-orb" style="width:600px;height:600px;background:var(--accent);top:-200px;right:-150px;"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">01 / 15</div>
+                    <div class="slide-tag">AINS 2026 · Use Case 1 · Scenario C</div>
+
+                    <div class="reveal" style="margin-bottom: 32px;">
+                        <div class="logo-mark">
+                            <div class="logo-c">C</div>
+                            <span class="logo-text">CULPRIT</span>
+                        </div>
+                    </div>
+
+                    <h1 class="reveal" style="max-width: 1100px; font-size: 76px;">
+                        When your AI agent fails,<br>
+                        <span class="accent">Culprit names the component,</span><br>
+                        proves it, and tells you how to fix it.
+                    </h1>
+
+                    <p class="lead reveal" style="margin-top: 40px; max-width: 800px;">
+                        Continuous evaluation with component-level failure attribution for non-deterministic AI agents.
+                    </p>
+
+                    <div class="reveal" style="margin-top: 48px; display: flex; gap: 16px;">
+                        <span class="pill pill-accent">Forensic Attribution</span>
+                        <span class="pill pill-accent">Counterfactual Proof</span>
+                        <span class="pill pill-accent">Meta-Evaluation</span>
+                    </div>
+
+                    <p class="reveal" style="margin-top: 56px; font-family: var(--font-mono); font-size: 16px; color: var(--text-muted);">
+                        github.com/youssef-medd/CULPRIT_AINS · MIT License
+                    </p>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 2 — THE PROBLEM
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">02 / 15</div>
+                    <div class="slide-tag">The Problem</div>
+
+                    <h2 class="reveal">Enterprise agents are<br>non-deterministic.</h2>
+                    <p class="lead reveal" style="max-width: 900px; margin-bottom: 48px;">
+                        The same JSM ticket can produce different tool calls and different routing on two runs. This breaks every safety net.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;">
+                        <div class="card reveal">
+                            <h3 style="color: var(--fail);">Pass/Fail Tests</h3>
+                            <p style="margin-top: 12px;">Don't apply — there is no exact output to match against. The agent takes a different valid path each time.</p>
+                        </div>
+                        <div class="card reveal">
+                            <h3 style="color: var(--unknown);">Silent Failures</h3>
+                            <p style="margin-top: 12px;">All tools return "ok", no error fires, and the ticket is still misrouted. You find out after the damage.</p>
+                        </div>
+                        <div class="card reveal">
+                            <h3 style="color: var(--accent);">Useless Signal</h3>
+                            <p style="margin-top: 12px;">"Task failed" tells an engineer nothing about which step to fix: retrieval? planning? tool params? synthesis?</p>
+                        </div>
+                    </div>
+
+                    <div class="reveal" style="margin-top: 48px; padding: 24px 32px; background: var(--bg-card); border-left: 4px solid var(--fail); border-radius: 0 12px 12px 0;">
+                        <p style="font-family: var(--font-mono); font-size: 18px; color: var(--text-primary);">
+                            <span class="fail">●</span> Inside Atlassian: <span style="color: var(--text-secondary);">no mechanism exists today to detect that an agent has drifted from spec, or to attribute a failed run to a component.</span>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 3 — THE GAP
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">03 / 15</div>
+                    <div class="slide-tag">The Gap</div>
+
+                    <h2 class="reveal">Capture is commoditized.<br><span class="accent">Attribution is not.</span></h2>
+                    <p class="lead reveal" style="max-width: 850px; margin-bottom: 44px;">
+                        LangSmith, Phoenix, Braintrust — they all trace and score. None of them ship what Culprit does.
+                    </p>
+
+                    <div class="reveal" style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 0; border: 1px solid var(--border); border-radius: 14px; overflow: hidden;">
+                        <div style="padding: 22px 24px; background: var(--bg-card); border-right: 1px solid var(--border);">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px;">Tool</p>
+                        </div>
+                        <div style="padding: 22px 24px; background: var(--bg-card); border-right: 1px solid var(--border);">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px;">Strength</p>
+                        </div>
+                        <div style="padding: 22px 24px; background: var(--bg-card); border-right: 1px solid var(--border);">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px;">What's Missing</p>
+                        </div>
+                        <div style="padding: 22px 24px; background: var(--bg-card);">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px;">Culprit?</p>
+                        </div>
+
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-weight: 600; color: var(--text-primary); font-size: 20px;">LangSmith</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-size: 18px;">Tracing, datasets</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-size: 18px;">First-decisive-step attribution</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-top: 1px solid var(--border);">
+                            <p class="pass" style="font-size: 18px; font-weight: 600;">✓ Ships it</p>
+                        </div>
+
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-weight: 600; color: var(--text-primary); font-size: 20px;">Phoenix</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-size: 18px;">OSS span eval</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-size: 18px;">Counterfactual confirmation</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-top: 1px solid var(--border);">
+                            <p class="pass" style="font-size: 18px; font-weight: 600;">✓ Ships it</p>
+                        </div>
+
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-weight: 600; color: var(--text-primary); font-size: 20px;">Braintrust</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-size: 18px;">Scorers, regression</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-size: 18px;">Meta-eval of the judge</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-top: 1px solid var(--border);">
+                            <p class="pass" style="font-size: 18px; font-weight: 600;">✓ Ships it</p>
+                        </div>
+
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-weight: 600; color: var(--text-primary); font-size: 20px;">OTel GenAI</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-size: 18px;">Standard spans</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-right: 1px solid var(--border); border-top: 1px solid var(--border);">
+                            <p style="font-size: 18px;">Attribution event type</p>
+                        </div>
+                        <div style="padding: 18px 24px; border-top: 1px solid var(--border);">
+                            <p class="pass" style="font-size: 18px; font-weight: 600;">✓ Defines it</p>
+                        </div>
+                    </div>
+
+                    <p class="reveal" style="margin-top: 32px; font-family: var(--font-mono); font-size: 17px; color: var(--accent);">
+                        → Culprit's defensible contribution: multi-level judging → first-decisive-step attribution → counterfactual confirmation → meta-evaluation.
+                    </p>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 4 — WHY AI
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="glow-orb" style="width:500px;height:500px;background:var(--accent);bottom:-150px;left:-100px;"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">04 / 15</div>
+                    <div class="slide-tag">Gating Requirement</div>
+
+                    <h2 class="reveal">Remove the model<br>and Culprit ceases to exist.</h2>
+                    <p class="lead reveal" style="max-width: 900px; margin-bottom: 48px;">
+                        There is no rule that decides these. They are semantic judgments over unstructured reasoning traces.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+                        <div class="card card-accent reveal">
+                            <h3>What a rule can't express</h3>
+                            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
+                                <div style="display: flex; gap: 14px; align-items: start;">
+                                    <span class="fail" style="font-size: 22px;">✕</span>
+                                    <p style="color: var(--text-primary);">"Retrieval returned irrelevant context"</p>
+                                </div>
+                                <div style="display: flex; gap: 14px; align-items: start;">
+                                    <span class="fail" style="font-size: 22px;">✕</span>
+                                    <p style="color: var(--text-primary);">"The summary asserts a field that was never retrieved"</p>
+                                </div>
+                                <div style="display: flex; gap: 14px; align-items: start;">
+                                    <span class="fail" style="font-size: 22px;">✕</span>
+                                    <p style="color: var(--text-primary);">"The plan ignored the priority signal in retrieved tickets"</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card reveal">
+                            <h3>What Culprit's judges do</h3>
+                            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
+                                <div style="display: flex; gap: 14px; align-items: start;">
+                                    <span class="pass" style="font-size: 22px;">✓</span>
+                                    <p style="color: var(--text-primary);">Rubric-anchored LLM judges with focused context</p>
+                                </div>
+                                <div style="display: flex; gap: 14px; align-items: start;">
+                                    <span class="pass" style="font-size: 22px;">✓</span>
+                                    <p style="color: var(--text-primary);">Self-consistency: k samples → agreement = confidence</p>
+                                </div>
+                                <div style="display: flex; gap: 14px; align-items: start;">
+                                    <span class="pass" style="font-size: 22px;">✓</span>
+                                    <p style="color: var(--text-primary);">Multi-agent debate on genuine disagreement</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="reveal" style="margin-top: 40px; text-align: center;">
+                        <p style="font-family: var(--font-mono); font-size: 22px; color: var(--text-secondary);">
+                            Not keyword matching. Not template filling. Not a wrapper around an existing feature.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 5 — ARCHITECTURE
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">05 / 15</div>
+                    <div class="slide-tag">System Design</div>
+
+                    <h2 class="reveal">The courtroom metaphor.</h2>
+                    <p class="lead reveal" style="max-width: 800px; margin-bottom: 44px;">
+                        Every component maps 1:1 to a real function. The metaphor keeps the system intuitive.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+                        <div class="card reveal">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--accent); margin-bottom: 8px;">CONTRACTS</p>
+                            <h3>The Statute</h3>
+                            <p style="margin-top: 8px;">Per-step rubrics, task-success definition, ordering invariants. Versioned YAML.</p>
+                        </div>
+                        <div class="card reveal">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--accent); margin-bottom: 8px;">JUDGES</p>
+                            <h3>The Panel</h3>
+                            <p style="margin-top: 8px;">Per-step LLM judges scoring against rubrics. Focused context. k-sampled.</p>
+                        </div>
+                        <div class="card reveal">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--accent); margin-bottom: 8px;">EVIDENCE</p>
+                            <h3>The Exhibits</h3>
+                            <p style="margin-top: 8px;">Cited trajectory fields: what was expected vs. what actually happened.</p>
+                        </div>
+                        <div class="card reveal">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--accent); margin-bottom: 8px;">VERDICT</p>
+                            <h3>The Report</h3>
+                            <p style="margin-top: 8px;">Structured attribution: decisive step, failure category, why, recommended fix.</p>
+                        </div>
+                        <div class="card reveal">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--accent); margin-bottom: 8px;">CONFIDENCE</p>
+                            <h3>Jury Agreement</h3>
+                            <p style="margin-top: 8px;">k-sample agreement becomes confidence. Low confidence → human review.</p>
+                        </div>
+                        <div class="card card-accent reveal">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--accent); margin-bottom: 8px;">COUNTERFACTUAL</p>
+                            <h3>The Re-enactment</h3>
+                            <p style="margin-top: 8px;">Replay with minimal edit. If outcome flips → causally confirmed.</p>
+                        </div>
+                    </div>
+
+                    <p class="reveal" style="margin-top: 36px; font-family: var(--font-mono); font-size: 17px; color: var(--text-muted); text-align: center;">
+                        Meta-evaluator = the appeals court that audits the judges
+                    </p>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 6 — PIPELINE
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">06 / 15</div>
+                    <div class="slide-tag">Data Flow</div>
+
+                    <h2 class="reveal">The pipeline.</h2>
+                    <p class="lead reveal" style="max-width: 800px; margin-bottom: 56px;">
+                        From ticket to confirmed attribution in one pass. Gating runs the expensive deep path only on failures.
+                    </p>
+
+                    <div class="flow-row reveal" style="justify-content: center; margin-bottom: 40px;">
+                        <div class="flow-node">
+                            <h4>Record</h4>
+                            <p>OTel spans</p>
+                        </div>
+                        <span class="flow-arrow">→</span>
+                        <div class="flow-node">
+                            <h4>Tag</h4>
+                            <p>step type</p>
+                        </div>
+                        <span class="flow-arrow">→</span>
+                        <div class="flow-node">
+                            <h4>Monitor</h4>
+                            <p>invariants</p>
+                        </div>
+                        <span class="flow-arrow">→</span>
+                        <div class="flow-node">
+                            <h4>Judge</h4>
+                            <p>k-sample</p>
+                        </div>
+                    </div>
+
+                    <div class="flow-row reveal" style="justify-content: center;">
+                        <div class="flow-node" style="border-color: var(--border-accent);">
+                            <h4 style="color: var(--accent);">Attribute</h4>
+                            <p>decisive step</p>
+                        </div>
+                        <span class="flow-arrow">→</span>
+                        <div class="flow-node" style="border-color: var(--border-accent);">
+                            <h4 style="color: var(--accent);">Counterfactual</h4>
+                            <p>minimal repair</p>
+                        </div>
+                        <span class="flow-arrow">→</span>
+                        <div class="flow-node" style="border-color: var(--border-accent);">
+                            <h4 style="color: var(--accent);">Verdict</h4>
+                            <p>report + CRS</p>
+                        </div>
+                    </div>
+
+                    <div class="reveal" style="margin-top: 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+                        <div class="card">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--pass); margin-bottom: 8px;">PASSING RUN</p>
+                            <p style="font-size: 19px;">Tagging + parallel judges + end-to-end verdict ≈ <span class="pass" style="font-weight: 600;">10-14s</span></p>
+                        </div>
+                        <div class="card card-accent">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--fail); margin-bottom: 8px;">FAILING RUN</p>
+                            <p style="font-size: 19px;">Adds counterfactual replay ≈ <span class="fail" style="font-weight: 600;">+8-12s</span></p>
+                        </div>
+                    </div>
+
+                    <p class="reveal" style="margin-top: 28px; font-family: var(--font-mono); font-size: 16px; color: var(--text-muted); text-align: center;">
+                        Cost scales with failure rate, not run rate → sub-linear at 10× volume
+                    </p>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 7 — ATTRIBUTION ALGORITHM
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">07 / 15</div>
+                    <div class="slide-tag">Engineering Depth · 50%</div>
+
+                    <h2 class="reveal">The attribution algorithm.</h2>
+                    <p class="lead reveal" style="max-width: 900px; margin-bottom: 36px;">
+                        Earliest high-confidence violation = the decisive suspect. Counterfactual replay turns correlation into causation.
+                    </p>
+
+                    <div class="code-block reveal" style="margin-bottom: 32px;">
+                        <span class="comment"># The core algorithm (simplified)</span><br>
+                        <span class="kw">def</span> <span class="var">attribute</span>(trajectory, verdicts, tau):<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> end_to_end(verdicts) == <span class="str">"pass"</span>:<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> Attribution(verdict=<span class="str">"pass"</span>)<br>
+                        <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># earliest high-confidence violation = decisive suspect</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;suspects = [v <span class="kw">for</span> v <span class="kw">in</span> component_verdicts(verdicts)<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> v.verdict == <span class="str">"fail"</span> <span class="kw">and</span> v.confidence >= tau]<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;suspects.sort(<span class="kw">by</span>=step_index)<br>
+                        <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> s <span class="kw">in</span> suspects:<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;edits = propose_minimal_edits(s, k=<span class="str">4</span>)<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> e <span class="kw">in</span> sorted(edits, <span class="kw">by</span>=edit_size):<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> replay_from(trajectory, s.step_id, edit=e) == <span class="str">"task_succeeded"</span>:<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> Attribution(decisive=s, confirmed=<span class="str">True</span>, repair=e, crs=...)
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px;">
+                        <div class="card reveal">
+                            <h3 style="color: var(--evidence);">Earliest-violation rule</h3>
+                            <p style="margin-top: 10px;">Stops Culprit from blaming a downstream symptom when an upstream step poisoned its input.</p>
+                        </div>
+                        <div class="card card-accent reveal">
+                            <h3 style="color: var(--accent);">Counterfactual confirmation</h3>
+                            <p style="margin-top: 10px;">Fixing the suspect must flip the outcome. If it does → causally confirmed. If not → reported as unconfirmed.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 8 — TWO-LAYER EVALUATION
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">08 / 15</div>
+                    <div class="slide-tag">Two-Layer Evaluation</div>
+
+                    <h2 class="reveal">Two layers.<br>Complementary, not redundant.</h2>
+                    <p class="lead reveal" style="max-width: 850px; margin-bottom: 48px;">
+                        A deterministic state machine catches structural faults instantly. LLM judges catch what no state machine can express.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+                        <div class="card reveal" style="border-left: 4px solid var(--pass);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="color: var(--pass); margin: 0;">Shadow Monitor</h3>
+                                <span class="pill pill-pass">Deterministic</span>
+                            </div>
+                            <p style="margin-bottom: 20px;">Each contract's ordering invariants compile into a state machine that runs online, in parallel with the agent.</p>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="pass">●</span> Wrong tool order</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="pass">●</span> Missing required step</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="pass">●</span> Incapable tool selected</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="pass">●</span> Field accessed before retrieval</p>
+                            </div>
+                            <p style="margin-top: 20px; font-family: var(--font-mono); font-size: 15px; color: var(--text-muted);">
+                                → Mid-flight divergence alert before any judge runs
+                            </p>
+                        </div>
+
+                        <div class="card reveal" style="border-left: 4px solid var(--accent);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="color: var(--accent); margin: 0;">LLM Judges</h3>
+                                <span class="pill pill-accent">Semantic</span>
+                            </div>
+                            <p style="margin-bottom: 20px;">Per-step LLM judges score each step against its rubric with focused context and self-consistency.</p>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> Was retrieved context relevant?</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> Is the summary grounded?</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> Did the plan use the right signals?</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> Was the priority correctly derived?</p>
+                            </div>
+                            <p style="margin-top: 20px; font-family: var(--font-mono); font-size: 15px; color: var(--text-muted);">
+                                → k-sampled → agreement = confidence → debate on splits
+                            </p>
+                        </div>
+                    </div>
+
+                    <p class="reveal" style="margin-top: 36px; text-align: center; font-family: var(--font-mono); font-size: 18px; color: var(--text-secondary);">
+                        Checks <span class="pass">action sequences</span>, not exact text — legitimately different valid paths don't trip it
+                    </p>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 9 — COUNTERFACTUAL REPAIR
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="glow-orb" style="width:400px;height:400px;background:var(--accent);top:50%;right:-100px;"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">09 / 15</div>
+                    <div class="slide-tag">Causal Confirmation</div>
+
+                    <h2 class="reveal">The smallest change<br>that flips failure to success.</h2>
+                    <p class="lead reveal" style="max-width: 850px; margin-bottom: 44px;">
+                        Not "retrieval was wrong" — but "change this one parameter and it passes."
+                    </p>
+
+                    <div class="reveal" style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 24px; align-items: center;">
+                        <div class="card card-red">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--fail); margin-bottom: 12px;">BEFORE — FAIL</p>
+                            <p style="font-size: 19px; color: var(--text-primary); margin-bottom: 16px;">
+                                Retrieval omitted <code>product_area</code> filter. Returned unrelated tickets.
+                            </p>
+                            <div class="code-block" style="font-size: 15px;">
+                                <span class="var">action.arguments.product_area</span>: <span class="fail">null</span>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center;">
+                            <p style="font-family: var(--font-display); font-size: 40px; color: var(--accent);">→</p>
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--accent); margin-top: 4px;">CRS: 1.0</p>
+                        </div>
+
+                        <div class="card" style="border-color: rgba(57, 211, 83, 0.3);">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--pass); margin-bottom: 12px;">AFTER — PASS</p>
+                            <p style="font-size: 19px; color: var(--text-primary); margin-bottom: 16px;">
+                                Populated <code>product_area='networking'</code>. Retrieval returned VPN tickets. Task succeeded.
+                            </p>
+                            <div class="code-block" style="font-size: 15px;">
+                                <span class="var">action.arguments.product_area</span>: <span class="str">"networking"</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="reveal" style="margin-top: 44px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+                        <div class="card" style="text-align: center;">
+                            <p style="font-family: var(--font-display); font-size: 48px; color: var(--accent);">1</p>
+                            <p style="font-size: 17px; margin-top: 8px;">Single-variable edit</p>
+                        </div>
+                        <div class="card" style="text-align: center;">
+                            <p style="font-family: var(--font-display); font-size: 48px; color: var(--accent);">CRS</p>
+                            <p style="font-size: 17px; margin-top: 8px;">Causal Responsibility Score</p>
+                        </div>
+                        <div class="card" style="text-align: center;">
+                            <p style="font-family: var(--font-display); font-size: 48px; color: var(--accent);">✓</p>
+                            <p style="font-size: 17px; margin-top: 8px;">Outcome flipped → confirmed</p>
+                        </div>
+                    </div>
+
+                    <p class="reveal" style="margin-top: 32px; font-family: var(--font-mono); font-size: 16px; color: var(--text-muted); text-align: center;">
+                        Grounded in counterfactual-explanation minimality (Wachter et al., 2017) + Pearl's ladder of causation
+                    </p>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 10 — DEMO
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">10 / 15</div>
+                    <div class="slide-tag">Prototype Quality · 25%</div>
+
+                    <h2 class="reveal">The dashboard.</h2>
+                    <p class="lead reveal" style="max-width: 850px; margin-bottom: 44px;">
+                        The trajectory rendered as an interactive graph. The decisive node pulses red. Click to reveal evidence, confidence, and the validated repair.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+                        <div class="card reveal">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                                <div class="pulse-node" style="width: 16px; height: 16px; border-radius: 50%; background: var(--fail); flex-shrink: 0;"></div>
+                                <h3 style="margin: 0;">Decisive Node</h3>
+                            </div>
+                            <p>The earliest high-confidence violation pulses red. One click reveals the violated contract, cited evidence, and confidence score.</p>
+                        </div>
+                        <div class="card reveal">
+                            <h3 style="color: var(--evidence);">Evidence Panel</h3>
+                            <p style="margin-top: 8px;">Field-level comparison: what was expected vs. what actually happened. No vague explanations.</p>
+                        </div>
+                        <div class="card reveal">
+                            <h3 style="color: var(--accent);">Validated Repair</h3>
+                            <p style="margin-top: 8px;">The exact minimal edit that flips the outcome. Copy-paste actionable, not "improve retrieval."</p>
+                        </div>
+                    </div>
+
+                    <div class="reveal" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+                        <div class="card" style="text-align: center; padding: 24px;">
+                            <p style="font-family: var(--font-display); font-size: 44px; color: var(--text-primary);">13</p>
+                            <p style="font-size: 15px; color: var(--text-secondary); margin-top: 6px;">Runs analyzed</p>
+                        </div>
+                        <div class="card" style="text-align: center; padding: 24px;">
+                            <p style="font-family: var(--font-display); font-size: 44px; color: var(--fail);">10</p>
+                            <p style="font-size: 15px; color: var(--text-secondary); margin-top: 6px;">Attributed failures</p>
+                        </div>
+                        <div class="card" style="text-align: center; padding: 24px;">
+                            <p style="font-family: var(--font-display); font-size: 44px; color: var(--pass);">3</p>
+                            <p style="font-size: 15px; color: var(--text-secondary); margin-top: 6px;">Passing runs</p>
+                        </div>
+                        <div class="card" style="text-align: center; padding: 24px;">
+                            <p style="font-family: var(--font-display); font-size: 44px; color: var(--accent);">4</p>
+                            <p style="font-size: 15px; color: var(--text-secondary); margin-top: 6px;">Failure categories</p>
+                        </div>
+                    </div>
+
+                    <p class="reveal" style="margin-top: 32px; font-family: var(--font-mono); font-size: 16px; color: var(--text-muted); text-align: center;">
+                        Next.js 16 · Tailwind v4 · Spline 3D · Recharts · Decoupled from the core via a single JSON swap point
+                    </p>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 11 — EXPLAINABILITY
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">11 / 15</div>
+                    <div class="slide-tag">Explainability · 15%</div>
+
+                    <h2 class="reveal">Every verdict answers<br>five questions.</h2>
+                    <p class="lead reveal" style="max-width: 800px; margin-bottom: 40px;">
+                        For every run — including passes. A non-AI-specialist must be able to act on the output.
+                    </p>
+
+                    <div class="card card-accent reveal" style="margin-bottom: 28px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="margin: 0; color: var(--text-primary);">demo_retrieval_no_filter_JSM-101</h3>
+                            <div style="display: flex; gap: 10px;">
+                                <span class="pill pill-fail">FAIL</span>
+                                <span class="pill pill-accent">confidence: 1.0</span>
+                                <span class="pill pill-accent">CRS: 1.0</span>
+                            </div>
+                        </div>
+
+                        <table class="evidence-table">
+                            <thead>
+                                <tr>
+                                    <th>Field</th>
+                                    <th>Expected</th>
+                                    <th>Actual</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>retrieved[0].product_area</td>
+                                    <td>networking</td>
+                                    <td class="fail">printing</td>
+                                </tr>
+                                <tr>
+                                    <td>retrieved[1].product_area</td>
+                                    <td>networking</td>
+                                    <td class="fail">email</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                            <div>
+                                <p style="font-family: var(--font-mono); font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">WHY</p>
+                                <p style="font-size: 18px; color: var(--text-primary);">Retrieval omitted the product_area filter and returned unrelated tickets. The planner then routed the VPN ticket to the wrong team.</p>
+                            </div>
+                            <div>
+                                <p style="font-family: var(--font-mono); font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">RECOMMENDED FIX</p>
+                                <p style="font-size: 18px; color: var(--accent);">Populate product_area='networking' in the retrieval call and add a relevance re-ranker.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="reveal" style="display: flex; gap: 20px; justify-content: center;">
+                        <span class="pill pill-accent">Cited evidence</span>
+                        <span class="pill pill-accent">Confidence score</span>
+                        <span class="pill pill-accent">Validated repair</span>
+                        <span class="pill pill-accent">Low-confidence → human review</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 12 — META-EVALUATION
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">12 / 15</div>
+                    <div class="slide-tag">Evaluation · 10%</div>
+
+                    <h2 class="reveal">Judging the judges.</h2>
+                    <p class="lead reveal" style="max-width: 850px; margin-bottom: 44px;">
+                        Culprit manufactures its own ground truth. A fault injector deterministically corrupts known-good trajectories into labeled failing ones.
+                    </p>
+
+                    <div class="stat-grid reveal" style="margin-bottom: 40px;">
+                        <div class="stat">
+                            <p class="stat-number">54.2%</p>
+                            <p class="stat-label">Attribution Accuracy</p>
+                        </div>
+                        <div class="stat">
+                            <p class="stat-number">24</p>
+                            <p class="stat-label">Labeled Test Cases</p>
+                        </div>
+                        <div class="stat">
+                            <p class="stat-number" style="color: var(--evidence);">4</p>
+                            <p class="stat-label">Fault Categories</p>
+                        </div>
+                        <div class="stat">
+                            <p class="stat-number" style="color: var(--pass);">14.2%</p>
+                            <p class="stat-label">Published SOTA (step-localization)</p>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px;">
+                        <div class="card reveal">
+                            <h3 style="color: var(--evidence);">How ground truth works</h3>
+                            <p style="margin-top: 10px;">The label comes from the <span style="color: var(--text-primary);">injection</span>, not from an LLM oracle. A trajectory mutation engine programmatically corrupts known-good runs: semantic noise, truncated results, reordered retrieval, parameter perturbation.</p>
+                        </div>
+                        <div class="card reveal">
+                            <h3 style="color: var(--accent);">What we measure</h3>
+                            <p style="margin-top: 10px;">Attribution accuracy, per-category precision / recall / F1, step-localization accuracy, and counterfactual confirmation rate — benchmarked against the published ~14.2% SOTA.</p>
+                        </div>
+                    </div>
+
+                    <p class="reveal" style="margin-top: 32px; font-family: var(--font-mono); font-size: 16px; color: var(--text-muted); text-align: center;">
+                        These numbers prove the machinery is correct end-to-end — not that LLM judges hit this accuracy in the wild
+                    </p>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 13 — NON-DETERMINISM
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">13 / 15</div>
+                    <div class="slide-tag">Non-Determinism</div>
+
+                    <h2 class="reveal">Non-determinism,<br>handled on two timescales.</h2>
+                    <p class="lead reveal" style="max-width: 850px; margin-bottom: 44px;">
+                        The agent is non-deterministic by design. Culprit's evaluation is robust to it.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 36px;">
+                        <div class="card reveal">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--accent); margin-bottom: 12px;">WITHIN A RUN</p>
+                            <h3>Self-Consistency + Debate</h3>
+                            <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 14px;">
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> k-sample each judge → agreement = confidence</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> Genuine disagreement → pass-vs-fail debate</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> Senior Judge adjudicates → still unresolved → human</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> Shadow Monitor checks action sequences, not text</p>
+                            </div>
+                        </div>
+
+                        <div class="card reveal">
+                            <p style="font-family: var(--font-mono); font-size: 14px; color: var(--accent); margin-bottom: 12px;">ACROSS RUN BATCHES</p>
+                            <h3>Drift Detection</h3>
+                            <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 14px;">
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> PSI / KL divergence across run batches</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> Flags behavioral distribution shifts over time</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> Complementary to within-run divergence alerts</p>
+                                <p style="font-size: 18px; color: var(--text-primary);"><span class="accent">●</span> Two timescales: online (instant) + batch (trend)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="reveal" style="padding: 24px 32px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border);">
+                        <p style="font-family: var(--font-mono); font-size: 18px; color: var(--text-secondary);">
+                            <span class="accent">Key insight:</span> Different valid paths don't trip the monitor — invariants are over <span style="color: var(--text-primary);">action sequences</span>, not exact text. A legitimately different routing that still respects ordering constraints passes cleanly.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 14 — LIMITATIONS
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="slide-inner">
+                    <div class="slide-number">14 / 15</div>
+                    <div class="slide-tag">Honest Limitations</div>
+
+                    <h2 class="reveal">We trade breadth<br>for measurable accuracy.</h2>
+                    <p class="lead reveal" style="max-width: 850px; margin-bottom: 44px;">
+                        General-purpose trace debugging sits at ~11–14%. Culprit wins by not being general — and we report the risks honestly.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px;">
+                        <div class="card reveal">
+                            <div style="display: flex; gap: 14px; align-items: start; margin-bottom: 20px;">
+                                <span class="fail" style="font-size: 22px; flex-shrink: 0;">⚠</span>
+                                <div>
+                                    <h3 style="margin: 0;">Counterfactual replay</h3>
+                                    <p style="margin-top: 8px;">Highest-risk component. Degrades gracefully to correlation-based attribution if no edit flips the outcome. The E3 Must still holds.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card reveal">
+                            <div style="display: flex; gap: 14px; align-items: start; margin-bottom: 20px;">
+                                <span class="unknown" style="font-size: 22px; flex-shrink: 0;">⚠</span>
+                                <div>
+                                    <h3 style="margin: 0; color: var(--unknown);">Meta-eval numbers</h3>
+                                    <p style="margin-top: 8px;">Produced by the deterministic heuristic backend over a small by-construction-labeled set. They prove the machinery, not wild-LLM accuracy.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card reveal">
+                            <div style="display: flex; gap: 14px; align-items: start;">
+                                <span class="evidence" style="font-size: 22px; flex-shrink: 0;">⊙</span>
+                                <div>
+                                    <h3 style="margin: 0; color: var(--evidence);">Deliberate scoping</h3>
+                                    <p style="margin-top: 8px;">One JSM triage agent, fixed step types, explicit per-step contracts. General trace debugging is a frontier problem at ~11%; we win by narrowing.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card reveal">
+                            <div style="display: flex; gap: 14px; align-items: start;">
+                                <span class="pass" style="font-size: 22px; flex-shrink: 0;">✓</span>
+                                <div>
+                                    <h3 style="margin: 0; color: var(--pass);">Degraded modes</h3>
+                                    <p style="margin-top: 8px;">Judge timeout → retry once → emit unknown at confidence 0. Missing fields treated as signal, not crash. Failed replay → correlation fallback.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="reveal" style="margin-top: 36px; font-family: var(--font-mono); font-size: 17px; color: var(--text-muted); text-align: center;">
+                        Run with a key and a noisier corpus for the realistic LLM-judge regime
+                    </p>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 15 — CLOSE
+                 ============================================ -->
+            <section class="slide">
+                <div class="grid-bg"></div>
+                <div class="glow-orb" style="width:700px;height:700px;background:var(--accent);bottom:-250px;right:-200px;opacity:0.3;"></div>
+                <div class="slide-inner" style="justify-content: center; align-items: center; text-align: center;">
+                    <div class="slide-number">15 / 15</div>
+                    <div class="slide-tag">Close</div>
+
+                    <div class="reveal-scale" style="margin-bottom: 32px;">
+                        <div class="logo-mark" style="justify-content: center;">
+                            <div class="logo-c">C</div>
+                            <span class="logo-text">CULPRIT</span>
+                        </div>
+                    </div>
+
+                    <h1 class="reveal" style="font-size: 64px; max-width: 1100px;">
+                        <span class="accent">Attribute</span> → <span class="evidence">Confirm</span> → <span class="pass">Prove</span>
+                    </h1>
+
+                    <p class="lead reveal" style="margin-top: 28px; max-width: 800px; text-align: center;">
+                        The defensible contribution: multi-level judging → first-decisive-step attribution → counterfactual confirmation → meta-evaluation of the judge.
+                    </p>
+
+                    <div class="reveal" style="margin-top: 48px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+                        <span class="pill pill-accent">MIT License</span>
+                        <span class="pill pill-accent">Docker</span>
+                        <span class="pill pill-accent">GitHub Actions CI</span>
+                        <span class="pill pill-accent">56 pytest tests</span>
+                        <span class="pill pill-accent">Zero-dep dashboard</span>
+                    </div>
+
+                    <div class="reveal" style="margin-top: 56px;">
+                        <p style="font-family: var(--font-mono); font-size: 20px; color: var(--text-secondary);">
+                            github.com/youssef-medd/CULPRIT_AINS
+                        </p>
+                    </div>
+
+                    <div class="reveal" style="margin-top: 48px;">
+                        <p style="font-family: var(--font-display); font-size: 32px; color: var(--text-primary);">
+                            Thank you. <span class="accent">Questions?</span>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progressBar" style="width: 6.67%;"></div>
+    <div class="slide-counter" id="slideCounter">01 / 15</div>
+
+    <!-- Edit mode toggle -->
+    <div class="edit-hotzone"></div>
+    <button class="edit-toggle" id="editToggle" title="Edit mode (E)">✏️</button>
+
+    <script>
+        /* ===========================================
+           SLIDE PRESENTATION CONTROLLER
+           Fixed 16:9 stage, keyboard/touch/wheel nav
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.stage = document.getElementById('deckStage');
+                this.progressBar = document.getElementById('progressBar');
+                this.counter = document.getElementById('slideCounter');
+                this.isTransitioning = false;
+                this.setupStageScale();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupWheelNav();
+                this.showSlide(0);
+            }
+
+            /* Scale the 1920×1080 stage to fit any viewport */
+            setupStageScale() {
+                const scale = () => {
+                    const factor = Math.min(
+                        window.innerWidth / 1920,
+                        window.innerHeight / 1080
+                    );
+                    const x = (window.innerWidth - 1920 * factor) / 2;
+                    const y = (window.innerHeight - 1080 * factor) / 2;
+                    this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+                };
+                scale();
+                window.addEventListener('resize', scale);
+            }
+
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    /* Skip if editing text */
+                    if (e.target.getAttribute('contenteditable') === 'true') return;
+                    /* Skip if edit toggle key */
+                    if (e.key === 'e' || e.key === 'E') return;
+
+                    switch (e.key) {
+                        case 'ArrowRight':
+                        case 'ArrowDown':
+                        case ' ':
+                        case 'PageDown':
+                            e.preventDefault();
+                            this.next();
+                            break;
+                        case 'ArrowLeft':
+                        case 'ArrowUp':
+                        case 'PageUp':
+                            e.preventDefault();
+                            this.prev();
+                            break;
+                        case 'Home':
+                            e.preventDefault();
+                            this.showSlide(0);
+                            break;
+                        case 'End':
+                            e.preventDefault();
+                            this.showSlide(this.slides.length - 1);
+                            break;
+                    }
+                });
+            }
+
+            setupTouchNav() {
+                let startX = 0;
+                let startY = 0;
+                document.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                });
+                document.addEventListener('touchend', (e) => {
+                    const dx = e.changedTouches[0].clientX - startX;
+                    const dy = e.changedTouches[0].clientY - startY;
+                    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+                        if (dx < 0) this.next();
+                        else this.prev();
+                    } else if (Math.abs(dy) > 50) {
+                        if (dy < 0) this.next();
+                        else this.prev();
+                    }
+                });
+            }
+
+            setupWheelNav() {
+                let wheelTimeout = null;
+                document.addEventListener('wheel', (e) => {
+                    if (this.isTransitioning) return;
+                    if (wheelTimeout) return;
+                    if (Math.abs(e.deltaY) < 30 && Math.abs(e.deltaX) < 30) return;
+
+                    wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 800);
+                    if (e.deltaY > 0 || e.deltaX > 0) this.next();
+                    else this.prev();
+                }, { passive: true });
+            }
+
+            next() {
+                if (this.currentSlide < this.slides.length - 1) {
+                    this.showSlide(this.currentSlide + 1);
+                }
+            }
+
+            prev() {
+                if (this.currentSlide > 0) {
+                    this.showSlide(this.currentSlide - 1);
+                }
+            }
+
+            showSlide(index) {
+                if (this.isTransitioning) return;
+                this.isTransitioning = true;
+
+                this.currentSlide = Math.max(0, Math.min(index, this.slides.length - 1));
+
+                this.slides.forEach((slide, i) => {
+                    if (i === this.currentSlide) {
+                        slide.classList.add('active');
+                        /* Delay visible class slightly for transition */
+                        requestAnimationFrame(() => {
+                            slide.classList.add('visible');
+                        });
+                    } else {
+                        slide.classList.remove('visible');
+                        slide.classList.remove('active');
+                    }
+                });
+
+                /* Update progress bar */
+                const progress = ((this.currentSlide + 1) / this.slides.length) * 100;
+                this.progressBar.style.width = progress + '%';
+
+                /* Update counter */
+                const num = String(this.currentSlide + 1).padStart(2, '0');
+                const total = String(this.slides.length).padStart(2, '0');
+                this.counter.textContent = `${num} / ${total}`;
+
+                setTimeout(() => { this.isTransitioning = false; }, 400);
+            }
+        }
+
+        /* ===========================================
+           INLINE EDITING
+           =========================================== */
+        class InlineEditor {
+            constructor() {
+                this.isActive = false;
+                this.edits = new Map();
+                this.editToggle = document.getElementById('editToggle');
+                this.setupToggle();
+                this.setupKeyboard();
+                this.loadEdits();
+            }
+
+            setupToggle() {
+                const hotzone = document.querySelector('.edit-hotzone');
+                let hideTimeout = null;
+
+                this.editToggle.addEventListener('click', () => this.toggle());
+
+                hotzone.addEventListener('mouseenter', () => {
+                    clearTimeout(hideTimeout);
+                    this.editToggle.classList.add('show');
+                });
+                hotzone.addEventListener('mouseleave', () => {
+                    hideTimeout = setTimeout(() => {
+                        if (!this.isActive) this.editToggle.classList.remove('show');
+                    }, 400);
+                });
+                this.editToggle.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+                this.editToggle.addEventListener('mouseleave', () => {
+                    hideTimeout = setTimeout(() => {
+                        if (!this.isActive) this.editToggle.classList.remove('show');
+                    }, 400);
+                });
+                hotzone.addEventListener('click', () => this.toggle());
+            }
+
+            setupKeyboard() {
+                document.addEventListener('keydown', (e) => {
+                    if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) {
+                        this.toggle();
+                    }
+                    if (e.key === 's' && (e.ctrlKey || e.metaKey) && this.isActive) {
+                        e.preventDefault();
+                        this.saveEdits();
+                    }
+                });
+            }
+
+            toggle() {
+                this.isActive = !this.isActive;
+                this.editToggle.classList.toggle('active', this.isActive);
+
+                const elements = document.querySelectorAll('h1, h2, h3, p, .lead, .stat-number, .stat-label');
+                elements.forEach(el => {
+                    if (this.isActive) {
+                        el.setAttribute('contenteditable', 'true');
+                    } else {
+                        el.removeAttribute('contenteditable');
+                        this.saveElement(el);
+                    }
+                });
+            }
+
+            saveElement(el) {
+                const slides = document.querySelectorAll('.slide');
+                const slide = el.closest('.slide');
+                if (!slide) return;
+                const slideIndex = Array.from(slides).indexOf(slide);
+                const els = slide.querySelectorAll('[contenteditable]');
+                const idx = Array.from(els).indexOf(el);
+                if (idx === -1) return;
+                this.edits.set(`${slideIndex}-${idx}`, el.textContent);
+            }
+
+            saveEdits() {
+                const data = Object.fromEntries(this.edits);
+                localStorage.setItem('culprit-pitch-edits', JSON.stringify(data));
+            }
+
+            loadEdits() {
+                const raw = localStorage.getItem('culprit-pitch-edits');
+                if (!raw) return;
+                try {
+                    const data = JSON.parse(raw);
+                    Object.entries(data).forEach(([key, text]) => {
+                        const [slideIdx, elIdx] = key.split('-').map(Number);
+                        const slide = document.querySelectorAll('.slide')[slideIdx];
+                        if (!slide) return;
+                        const els = slide.querySelectorAll('h1, h2, h3, p, .lead, .stat-number, .stat-label');
+                        if (els[elIdx]) els[elIdx].textContent = text;
+                    });
+                } catch (e) { /* ignore */ }
+            }
+        }
+
+        /* Initialize */
+        new SlidePresentation();
+        new InlineEditor();
+    </script>
+</body>
+</html>
