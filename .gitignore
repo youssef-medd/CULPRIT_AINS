@@ -60,8 +60,10 @@ pnpm-workspace.yaml
 skills-lock.json
 
 # Video production: heavy/regenerable working files.
-# Keep ONLY the final rendered cut (final_output_vid/final.mp4).
-final_output_vid/*
-!final_output_vid/final.mp4
+# Videos are submitted via the entry form, NOT tracked in the repo.
+final_output_vid/
 demo-video/
 data/synthetic/_one.jsonl
+
+# Submission artifacts (PDFs/HTML built for the form upload, not repo content).
+docs/submission/
