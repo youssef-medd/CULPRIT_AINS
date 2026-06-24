@@ -13,6 +13,23 @@ Culprit is a continuous evaluation system for non-deterministic enterprise AI ag
 
 ---
 
+## Concept
+
+**The one-sentence version.** AI agents fail *silently* — they finish with no error but quietly do the wrong thing. Culprit catches those silent failures, names the exact part of the agent that caused each one, and **proves it with a re-run**.
+
+**The analogy.** A normal test says *"the run failed."* A stack trace tells a human engineer *which line* broke. Non-deterministic AI agents have **neither** — no pass/fail to match against, no stack trace to read. Culprit is the **missing stack trace for AI agents**: it points at the one step that broke and shows the evidence.
+
+**What it actually does — in plain terms:**
+- **Watches** a Jira Service Management ticket-triage agent do its job — *retrieve* context → *plan* → *act* (call tools) → *synthesize* the answer.
+- **Judges** each of those four steps against a written rule-book (e.g. "retrieved tickets must match the ticket's topic", "the summary may not assert a fact that was never retrieved").
+- **Blames** the *earliest* step that broke a rule — the root cause, not the downstream symptom.
+- **Proves it** by replaying the agent with one minimal fix applied; if the run now succeeds, the blame is **confirmed**, not guessed.
+- **Grades itself** — a meta-evaluator injects known bugs and measures how often Culprit blames the right component.
+
+**A 10-second story.** A user submits *"VPN keeps dropping"* — a networking issue. The agent finishes with no error, every tool returns OK, and the ticket is routed to the **wrong team**. Every traditional monitor marks this run a *success*. Culprit flags it, points at **retrieval** (it forgot to filter by `product_area`), shows the field-level evidence, and proves that filling in that one field fixes the run.
+
+> **See it:** the visual concept lives in the pitch deck [`culprit-pitch.html`](culprit-pitch.html); the concept & demo walkthrough videos are part of the entry-form submission.
+
 ## 1. The problem
 
 Enterprise teams deploy agents that don't behave deterministically: the same JSM ticket can produce different tool calls and different routing on two runs. This breaks the usual safety net in three ways:
