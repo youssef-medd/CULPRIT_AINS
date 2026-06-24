@@ -63,6 +63,7 @@ skills-lock.json
 # Videos are submitted via the entry form, NOT tracked in the repo.
 final_output_vid/
 demo-video/
+concept/
 data/synthetic/_one.jsonl
 
 # Submission artifacts (PDFs/HTML built for the form upload, not repo content).
