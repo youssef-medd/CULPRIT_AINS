@@ -286,7 +286,21 @@ cd ui && npm install && npm run dev
 pytest
 ```
 
-Each command writes structured verdicts (JSON) and human-readable reports (Markdown) to `data/outputs/`; the dashboard renders the trajectory as an interactive graph with the decisive node highlighted.
+Each command writes structured verdicts (JSON) and human-readable reports (Markdown) to `data/outputs/`; the dashboard renders the trajectory as an interactive graph with the decisive node highlighted. Every run prints which backend is active (real LLM judges vs the deterministic stand-in), so reproducibility-mode output is never mistaken for the AI evaluation path.
+
+**Run with Docker (no Python setup, pinned to 3.11):**
+
+```bash
+docker build -t culprit .
+docker run --rm -e NVIDIA_API_KEY=nvapi-... culprit     # real LLM judge panel
+docker run --rm culprit                                  # deterministic reproducibility mode
+docker run --rm culprit python -m culprit.meta_eval      # judging the judges
+docker run --rm culprit pytest -q                        # the test suite
+```
+
+The Next.js dashboard is run natively (`cd ui && npm run dev`), not in the image.
+
+**Further docs:** [`docs/DATA.md`](docs/DATA.md) (data description: sources, fields, sensitivity) · [`docs/PITCH.md`](docs/PITCH.md) (15-slide pitch outline). Continuous integration (ruff · mypy · pytest · UI build) runs on every push via [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## 12. Technical stack (chosen, justified)
 

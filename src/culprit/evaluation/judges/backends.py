@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import random
+import threading
 from collections import Counter
 from string import Template
 from typing import Any
@@ -48,11 +49,13 @@ class LLMJudgeBackend:
     def __init__(self, model: str | None = None, seed: int | None = None) -> None:
         self.model = model or settings.judge_model
         self._rng = random.Random(seed)
+        self._rng_lock = threading.Lock()
 
     def _render(self, template: str, **fields: Any) -> str:
-        return Template(template).safe_substitute(
-            verdict_options=_verdict_options(self._rng), **fields
-        )
+        # The backend is shared across the concurrent sample pool; guard the RNG.
+        with self._rng_lock:
+            options = _verdict_options(self._rng)
+        return Template(template).safe_substitute(verdict_options=options, **fields)
 
     def _call(self, prompt: str, temperature: float) -> RawJudgment:
         try:

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-23T09:52:15.697597+00:00",
+  "generated_at": "2026-06-24T10:05:52.639663+00:00",
   "meta_eval": {
     "n_cases": 24,
     "attribution_accuracy": 0.542,
@@ -78,7 +78,7 @@
         "decisive_step_id": "step_00",
         "decisive_step_type": "retrieval",
         "failure_category": "irrelevant_context_retrieved",
-        "why": "The retrieved tickets do not match the ticket's product area ('networking') and request type ('VPN keeps dropping, cannot work'). Every tool call returned ok, so no error fired \u2014 a silent failure.",
+        "why": "The retrieved tickets do not match the product area of the ticket, which is 'networking'. Every tool call returned ok, so no error fired \u2014 a silent failure.",
         "evidence": [
           {
             "field": "retrieved[0].product_area",
@@ -94,32 +94,28 @@
           }
         ],
         "confidence": 1.0,
-        "crs": 0.9,
+        "crs": 1.0,
         "counterfactual": {
           "performed": true,
           "result": "task_succeeded",
           "confirms_attribution": true,
-          "minimal": false,
+          "minimal": true,
           "repair": {
-            "description": "Coarse correction: force routing to Network Engineering at High.",
+            "description": "Populate product_area='networking' in the retrieval call and add a relevance re-ranker.",
             "edits": [
               {
-                "field": "plan.team",
+                "field": "action.arguments.product_area",
                 "from_value": null,
-                "to_value": "Network Engineering"
-              },
-              {
-                "field": "plan.priority",
-                "from_value": null,
-                "to_value": "High"
+                "to_value": "networking"
               }
             ]
           }
         },
         "confirmed": true,
-        "recommended_fix": "Coarse correction: force routing to Network Engineering at High.",
+        "recommended_fix": "Populate product_area='networking' in the retrieval call and add a relevance re-ranker.",
         "alternatives": [
-          "step_01"
+          "step_01",
+          "step_03"
         ]
       },
       "trajectory": {
@@ -325,7 +321,7 @@
             "action": null,
             "result": "Ticket \"VPN keeps dropping, cannot work\" was routed to IT Hardware Support at High priority.",
             "status": "ok",
-            "latency_ms": 1.008,
+            "latency_ms": 0.0,
             "context_snapshot": {
               "inputs": {
                 "jsm": {
@@ -360,7 +356,7 @@
           "node_count": 4
         }
       },
-      "total_ms": 1.0,
+      "total_ms": 0,
       "started_at": null
     },
     {
@@ -384,7 +380,7 @@
         "decisive_step_id": "step_00",
         "decisive_step_type": "retrieval",
         "failure_category": "irrelevant_context_retrieved",
-        "why": "Retrieved tickets do not match the product area of the ticket, citing different product_areas (networking vs printing/email). Every tool call returned ok, so no error fired \u2014 a silent failure.",
+        "why": "The retrieved tickets do not match the ticket's product area (networking). Every tool call returned ok, so no error fired \u2014 a silent failure.",
         "evidence": [
           {
             "field": "ticket.product_area",
@@ -426,8 +422,7 @@
         "confirmed": true,
         "recommended_fix": "Populate product_area='networking' in the retrieval call and add a relevance re-ranker.",
         "alternatives": [
-          "step_01",
-          "step_02"
+          "step_01"
         ]
       },
       "trajectory": {
@@ -511,7 +506,7 @@
               "rationale": "Routed to Network Engineering (majority of retrieved tickets); priority Medium inferred from the ticket text."
             },
             "status": "ok",
-            "latency_ms": 0.49799999999999994,
+            "latency_ms": 0.0,
             "context_snapshot": {
               "inputs": {
                 "retrieved": [
@@ -668,7 +663,7 @@
           "node_count": 4
         }
       },
-      "total_ms": 0.5,
+      "total_ms": 0,
       "started_at": null
     },
     {
@@ -692,7 +687,7 @@
         "decisive_step_id": "step_01",
         "decisive_step_type": "planning",
         "failure_category": "wrong_team_selected",
-        "why": "The plan incorrectly assigned the IT Hardware Support team, which does not match the product area 'email' and the retrieved similar tickets. Every tool call returned ok, so no error fired \u2014 a silent failure.",
+        "why": "The planned team 'IT Hardware Support' does not match the ticket's product area 'email' and the majority of retrieved tickets. Every tool call returned ok, so no error fired \u2014 a silent failure.",
         "evidence": [
           {
             "field": "plan.team",
@@ -701,43 +696,29 @@
             "note": null
           },
           {
-            "field": "retrieved[0].team",
-            "expected": "Messaging & Collaboration",
-            "actual": "Messaging & Collaboration",
+            "field": "retrieved[0].product_area",
+            "expected": "email",
+            "actual": "email",
             "note": null
           },
           {
-            "field": "retrieved[1].team",
-            "expected": "Messaging & Collaboration",
-            "actual": "Messaging & Collaboration",
+            "field": "retrieved[1].product_area",
+            "expected": "email",
+            "actual": "email",
             "note": null
           }
         ],
         "confidence": 1.0,
-        "crs": 0.9,
+        "crs": 0.4,
         "counterfactual": {
           "performed": true,
-          "result": "task_succeeded",
-          "confirms_attribution": true,
+          "result": "task_failed",
+          "confirms_attribution": false,
           "minimal": false,
-          "repair": {
-            "description": "Coarse correction: force routing to Messaging & Collaboration at Medium.",
-            "edits": [
-              {
-                "field": "plan.team",
-                "from_value": null,
-                "to_value": "Messaging & Collaboration"
-              },
-              {
-                "field": "plan.priority",
-                "from_value": null,
-                "to_value": "Medium"
-              }
-            ]
-          }
+          "repair": null
         },
-        "confirmed": true,
-        "recommended_fix": "Coarse correction: force routing to Messaging & Collaboration at Medium.",
+        "confirmed": false,
+        "recommended_fix": "Correct the routing rule for this product area.",
         "alternatives": []
       },
       "trajectory": {
@@ -822,7 +803,7 @@
               "rationale": "Routed to Messaging & Collaboration (majority of retrieved tickets); priority Medium inferred from the ticket text."
             },
             "status": "ok",
-            "latency_ms": 2.018,
+            "latency_ms": 0.0,
             "context_snapshot": {
               "inputs": {
                 "retrieved": [
@@ -979,7 +960,7 @@
           "node_count": 4
         }
       },
-      "total_ms": 2.0,
+      "total_ms": 0,
       "started_at": null
     },
     {
@@ -1000,27 +981,21 @@
       "attribution": {
         "run_id": "demo_planning_wrong_team_JSM-105",
         "end_to_end_verdict": "fail",
-        "decisive_step_id": "step_01",
-        "decisive_step_type": "planning",
-        "failure_category": "wrong_team_selected",
-        "why": "The planned team IT Hardware Support does not match the ticket's product area software and the retrieved similar tickets T-5001 and T-5002 which are both routed to Application Support. Every tool call returned ok, so no error fired \u2014 a silent failure.",
+        "decisive_step_id": "step_00",
+        "decisive_step_type": "retrieval",
+        "failure_category": "insufficient_context_retrieved",
+        "why": "Only two tickets were returned, but a well-specified ticket like JSM-105 requires more relevant context to support routing. Every tool call returned ok, so no error fired \u2014 a silent failure.",
         "evidence": [
           {
-            "field": "plan.team",
-            "expected": "Application Support",
-            "actual": "IT Hardware Support",
+            "field": "search_result.count",
+            "expected": "a larger number",
+            "actual": 2,
             "note": null
           },
           {
-            "field": "retrieved[0].team",
-            "expected": "Application Support",
-            "actual": "Application Support",
-            "note": null
-          },
-          {
-            "field": "retrieved[1].team",
-            "expected": "Application Support",
-            "actual": "Application Support",
+            "field": "ticket.product_area",
+            "expected": "relevant to software",
+            "actual": "relevant to software",
             "note": null
           }
         ],
@@ -1032,19 +1007,21 @@
           "confirms_attribution": true,
           "minimal": true,
           "repair": {
-            "description": "Route to Application Support for the ticket's product area.",
+            "description": "Populate product_area='software' in the retrieval call and add a relevance re-ranker.",
             "edits": [
               {
-                "field": "plan.team",
-                "from_value": null,
-                "to_value": "Application Support"
+                "field": "action.arguments.product_area",
+                "from_value": "software",
+                "to_value": "software"
               }
             ]
           }
         },
         "confirmed": true,
-        "recommended_fix": "Route to Application Support for the ticket's product area.",
-        "alternatives": []
+        "recommended_fix": "Populate product_area='software' in the retrieval call and add a relevance re-ranker.",
+        "alternatives": [
+          "step_01"
+        ]
       },
       "trajectory": {
         "run_id": "demo_planning_wrong_team_JSM-105",
@@ -1088,7 +1065,7 @@
               ]
             },
             "status": "ok",
-            "latency_ms": 0.609,
+            "latency_ms": 0.0,
             "context_snapshot": {
               "inputs": {
                 "ticket": {
@@ -1285,7 +1262,7 @@
           "node_count": 4
         }
       },
-      "total_ms": 0.6,
+      "total_ms": 0,
       "started_at": null
     },
     {
@@ -1306,15 +1283,15 @@
       "attribution": {
         "run_id": "demo_tool_missing_arg_JSM-104",
         "end_to_end_verdict": "fail",
-        "decisive_step_id": "step_02",
-        "decisive_step_type": "tool_execution",
-        "failure_category": "missing_required_argument",
-        "why": "The required argument 'team' was absent in the action, violating the arguments_well_formed criterion.",
+        "decisive_step_id": "step_01",
+        "decisive_step_type": "planning",
+        "failure_category": "plan_ignores_context",
+        "why": "The plan disregards the retrieved ticket T-4002 which has a similar product area and lower priority.",
         "evidence": [
           {
-            "field": "action.arguments.team",
-            "expected": "not null",
-            "actual": "",
+            "field": "plan.rationale",
+            "expected": "The majority of retrieved tickets have the same product area and priority.",
+            "actual": "Routed to Identity & Access Management (majority of retrieved tickets); priority High inferred from the ticket text.",
             "note": null
           }
         ],
@@ -1328,8 +1305,10 @@
           "repair": null
         },
         "confirmed": false,
-        "recommended_fix": "Supply the missing tool argument before the call.",
-        "alternatives": []
+        "recommended_fix": null,
+        "alternatives": [
+          "step_02"
+        ]
       },
       "trajectory": {
         "run_id": "demo_tool_missing_arg_JSM-104",
@@ -1591,15 +1570,27 @@
       "attribution": {
         "run_id": "demo_tool_missing_arg_JSM-102",
         "end_to_end_verdict": "fail",
-        "decisive_step_id": "step_02",
-        "decisive_step_type": "tool_execution",
-        "failure_category": "missing_required_argument",
-        "why": "The 'team' argument is missing in the 'arguments' field of the 'action' dictionary.",
+        "decisive_step_id": "step_01",
+        "decisive_step_type": "planning",
+        "failure_category": "wrong_team_selected",
+        "why": "The planned team matches the ticket's product area, but the rationale does not account for the request type.",
         "evidence": [
           {
-            "field": "action.arguments.team",
-            "expected": "a non-empty string",
-            "actual": "",
+            "field": "plan.team",
+            "expected": "IT Hardware Support",
+            "actual": "IT Hardware Support",
+            "note": null
+          },
+          {
+            "field": "retrieved[0].title",
+            "expected": "matches request type",
+            "actual": "Office printer jams on duplex",
+            "note": null
+          },
+          {
+            "field": "retrieved[1].title",
+            "expected": "does not match request type",
+            "actual": "Printer not found on the network",
             "note": null
           }
         ],
@@ -1613,8 +1604,11 @@
           "repair": null
         },
         "confirmed": false,
-        "recommended_fix": "Supply the missing tool argument before the call.",
-        "alternatives": []
+        "recommended_fix": "Correct the routing rule for this product area.",
+        "alternatives": [
+          "step_02",
+          "step_04"
+        ]
       },
       "trajectory": {
         "run_id": "demo_tool_missing_arg_JSM-102",
@@ -1820,7 +1814,7 @@
             "action": null,
             "result": "Triage incomplete: priority Medium set but team unassigned.",
             "status": "ok",
-            "latency_ms": 2.4450000000000003,
+            "latency_ms": 0.0,
             "context_snapshot": {
               "inputs": {
                 "jsm": {
@@ -1855,7 +1849,7 @@
           "node_count": 4
         }
       },
-      "total_ms": 2.4,
+      "total_ms": 0,
       "started_at": null
     },
     {
@@ -1879,7 +1873,7 @@
         "decisive_step_id": "step_01",
         "decisive_step_type": "planning",
         "failure_category": "wrong_priority",
-        "why": "The planned priority Medium does not match the ticket's severity, which is High as indicated by the priority field in the retrieved ticket T-5001. Every tool call returned ok, so no error fired \u2014 a silent failure.",
+        "why": "The planned priority 'Medium' does not match the ticket's severity, which is described as 'High' in T-5001. Every tool call returned ok, so no error fired \u2014 a silent failure.",
         "evidence": [
           {
             "field": "plan.priority",
@@ -1888,34 +1882,25 @@
             "note": null
           },
           {
-            "field": "retrieved[0].priority",
+            "field": "retrieved.0.priority",
             "expected": "High",
             "actual": "High",
             "note": null
           }
         ],
         "confidence": 1.0,
-        "crs": 1.0,
+        "crs": 0.4,
         "counterfactual": {
           "performed": true,
-          "result": "task_succeeded",
-          "confirms_attribution": true,
-          "minimal": true,
-          "repair": {
-            "description": "Route to Application Support for the ticket's product area.",
-            "edits": [
-              {
-                "field": "plan.team",
-                "from_value": null,
-                "to_value": "Application Support"
-              }
-            ]
-          }
+          "result": "task_failed",
+          "confirms_attribution": false,
+          "minimal": false,
+          "repair": null
         },
-        "confirmed": true,
-        "recommended_fix": "Route to Application Support for the ticket's product area.",
+        "confirmed": false,
+        "recommended_fix": "Re-derive priority from the ticket's severity signals.",
         "alternatives": [
-          "step_03"
+          "step_04"
         ]
       },
       "trajectory": {
@@ -2000,7 +1985,7 @@
               "rationale": "Routed to Application Support (majority of retrieved tickets); priority Medium inferred from the ticket text."
             },
             "status": "ok",
-            "latency_ms": 0.516,
+            "latency_ms": 0.0,
             "context_snapshot": {
               "inputs": {
                 "retrieved": [
@@ -2157,7 +2142,7 @@
           "node_count": 4
         }
       },
-      "total_ms": 0.5,
+      "total_ms": 0,
       "started_at": null
     },
     {
@@ -2178,22 +2163,38 @@
       "attribution": {
         "run_id": "demo_synthesis_inconsistent_JSM-101",
         "end_to_end_verdict": "fail",
-        "decisive_step_id": null,
-        "decisive_step_type": null,
-        "failure_category": null,
-        "why": "Task failed but no component verdict isolated a cause.",
-        "evidence": [],
-        "confidence": 0.0,
-        "crs": null,
+        "decisive_step_id": "step_01",
+        "decisive_step_type": "planning",
+        "failure_category": "plan_ignores_context",
+        "why": "The plan disregards the clearly relevant retrieved context of a similar ticket with a lower priority (T-1003). Every tool call returned ok, so no error fired \u2014 a silent failure.",
+        "evidence": [
+          {
+            "field": "retrieved[2].priority",
+            "expected": "Medium",
+            "actual": "not considered",
+            "note": null
+          }
+        ],
+        "confidence": 1.0,
+        "crs": 1.0,
         "counterfactual": {
-          "performed": false,
-          "result": null,
-          "confirms_attribution": false,
-          "minimal": false,
-          "repair": null
+          "performed": true,
+          "result": "task_succeeded",
+          "confirms_attribution": true,
+          "minimal": true,
+          "repair": {
+            "description": "Route to Network Engineering for the ticket's product area.",
+            "edits": [
+              {
+                "field": "plan.team",
+                "from_value": null,
+                "to_value": "Network Engineering"
+              }
+            ]
+          }
         },
-        "confirmed": false,
-        "recommended_fix": null,
+        "confirmed": true,
+        "recommended_fix": "Route to Network Engineering for the ticket's product area.",
         "alternatives": []
       },
       "trajectory": {
@@ -2467,15 +2468,15 @@
       "attribution": {
         "run_id": "demo_pass_JSM-101",
         "end_to_end_verdict": "fail",
-        "decisive_step_id": "step_00",
-        "decisive_step_type": "retrieval",
-        "failure_category": "irrelevant_context_retrieved",
-        "why": "The retrieved tickets include a wifi-related issue which is topically irrelevant to the VPN/networking ticket. Every tool call returned ok, so no error fired \u2014 a silent failure.",
+        "decisive_step_id": "step_01",
+        "decisive_step_type": "planning",
+        "failure_category": "plan_ignores_context",
+        "why": "The plan disregards the fact that the ticket's priority is 'High' (priority) but the majority of retrieved tickets have a score < 0.7 (retrieved[0].score, retrieved[1].score). Every tool call returned ok, so no error fired \u2014 a silent failure.",
         "evidence": [
           {
-            "field": "retrieved[2].title",
-            "expected": "related to VPN or networking",
-            "actual": "Wifi drops in the east building",
+            "field": "plan.rationale",
+            "expected": "a mention of the retrieved tickets' scores",
+            "actual": "routed to Network Engineering (majority of retrieved tickets)",
             "note": null
           }
         ],
@@ -2487,21 +2488,19 @@
           "confirms_attribution": true,
           "minimal": true,
           "repair": {
-            "description": "Populate product_area='networking' in the retrieval call and add a relevance re-ranker.",
+            "description": "Route to Network Engineering for the ticket's product area.",
             "edits": [
               {
-                "field": "action.arguments.product_area",
-                "from_value": "networking",
-                "to_value": "networking"
+                "field": "plan.team",
+                "from_value": null,
+                "to_value": "Network Engineering"
               }
             ]
           }
         },
         "confirmed": true,
-        "recommended_fix": "Populate product_area='networking' in the retrieval call and add a relevance re-ranker.",
-        "alternatives": [
-          "step_01"
-        ]
+        "recommended_fix": "Route to Network Engineering for the ticket's product area.",
+        "alternatives": []
       },
       "trajectory": {
         "run_id": "demo_pass_JSM-101",
@@ -2553,7 +2552,7 @@
               ]
             },
             "status": "ok",
-            "latency_ms": 2.053,
+            "latency_ms": 0.0,
             "context_snapshot": {
               "inputs": {
                 "ticket": {
@@ -2758,7 +2757,7 @@
           "node_count": 4
         }
       },
-      "total_ms": 2.1,
+      "total_ms": 0,
       "started_at": null
     },
     {
@@ -2773,24 +2772,48 @@
       "label": null,
       "attribution": {
         "run_id": "demo_pass_JSM-102",
-        "end_to_end_verdict": "pass",
-        "decisive_step_id": null,
-        "decisive_step_type": null,
-        "failure_category": null,
-        "why": "Run succeeded at the task; no decisive failure to attribute.",
-        "evidence": [],
+        "end_to_end_verdict": "fail",
+        "decisive_step_id": "step_01",
+        "decisive_step_type": "planning",
+        "failure_category": "wrong_priority",
+        "why": "The planned priority is Medium, but the retrieved similar ticket T-2001 has a priority of Low, which suggests a lower impact. Every tool call returned ok, so no error fired \u2014 a silent failure.",
+        "evidence": [
+          {
+            "field": "plan.priority",
+            "expected": "High or Medium",
+            "actual": "Medium",
+            "note": null
+          },
+          {
+            "field": "retrieved.0.priority",
+            "expected": "Low",
+            "actual": "Low",
+            "note": null
+          }
+        ],
         "confidence": 1.0,
-        "crs": null,
+        "crs": 1.0,
         "counterfactual": {
-          "performed": false,
-          "result": null,
-          "confirms_attribution": false,
-          "minimal": false,
-          "repair": null
+          "performed": true,
+          "result": "task_succeeded",
+          "confirms_attribution": true,
+          "minimal": true,
+          "repair": {
+            "description": "Route to IT Hardware Support for the ticket's product area.",
+            "edits": [
+              {
+                "field": "plan.team",
+                "from_value": null,
+                "to_value": "IT Hardware Support"
+              }
+            ]
+          }
         },
-        "confirmed": false,
-        "recommended_fix": null,
-        "alternatives": []
+        "confirmed": true,
+        "recommended_fix": "Route to IT Hardware Support for the ticket's product area.",
+        "alternatives": [
+          "step_04"
+        ]
       },
       "trajectory": {
         "run_id": "demo_pass_JSM-102",
@@ -3046,23 +3069,30 @@
       "label": null,
       "attribution": {
         "run_id": "demo_pass_JSM-103",
-        "end_to_end_verdict": "pass",
-        "decisive_step_id": null,
-        "decisive_step_type": null,
-        "failure_category": null,
-        "why": "Run succeeded at the task; no decisive failure to attribute.",
-        "evidence": [],
+        "end_to_end_verdict": "fail",
+        "decisive_step_id": "step_01",
+        "decisive_step_type": "planning",
+        "failure_category": "wrong_priority",
+        "why": "The planned priority of 'Medium' does not match the retrieved context's priority of 'High'. Every tool call returned ok, so no error fired \u2014 a silent failure.",
+        "evidence": [
+          {
+            "field": "retrieved[0].priority",
+            "expected": "High",
+            "actual": "Medium",
+            "note": null
+          }
+        ],
         "confidence": 1.0,
-        "crs": null,
+        "crs": 0.4,
         "counterfactual": {
-          "performed": false,
-          "result": null,
+          "performed": true,
+          "result": "task_failed",
           "confirms_attribution": false,
           "minimal": false,
           "repair": null
         },
         "confirmed": false,
-        "recommended_fix": null,
+        "recommended_fix": "Re-derive priority from the ticket's severity signals.",
         "alternatives": []
       },
       "trajectory": {
@@ -3320,16 +3350,23 @@
       "attribution": {
         "run_id": "demo_pass_JSM-104",
         "end_to_end_verdict": "fail",
-        "decisive_step_id": null,
-        "decisive_step_type": null,
-        "failure_category": null,
-        "why": "Task failed but no component verdict isolated a cause.",
-        "evidence": [],
-        "confidence": 0.0,
-        "crs": null,
+        "decisive_step_id": "step_04",
+        "decisive_step_type": "synthesis",
+        "failure_category": "hallucinated_grounding",
+        "why": "The summary claims that the team was routed to based on the majority of retrieved tickets, but this information is not present in the context. Every tool call returned ok, so no error fired \u2014 a silent failure.",
+        "evidence": [
+          {
+            "field": "['plan', 'rationale']",
+            "expected": null,
+            "actual": "Routed to Identity & Access Management (majority of retrieved tickets)",
+            "note": null
+          }
+        ],
+        "confidence": 1.0,
+        "crs": 0.4,
         "counterfactual": {
-          "performed": false,
-          "result": null,
+          "performed": true,
+          "result": "task_failed",
           "confirms_attribution": false,
           "minimal": false,
           "repair": null
@@ -3592,42 +3629,23 @@
       "label": null,
       "attribution": {
         "run_id": "demo_pass_JSM-106",
-        "end_to_end_verdict": "unknown",
-        "decisive_step_id": "step_01",
-        "decisive_step_type": "planning",
-        "failure_category": "wrong_priority",
-        "why": "The plan sets the priority to Medium, but the ticket's severity is High, as inferred from the retrieved similar tickets (T-1001 and T-1002) with High priority.",
-        "evidence": [
-          {
-            "field": "plan.priority",
-            "expected": "High",
-            "actual": "Medium",
-            "note": null
-          },
-          {
-            "field": "retrieved.0.priority",
-            "expected": "High",
-            "actual": "High",
-            "note": null
-          },
-          {
-            "field": "retrieved.1.priority",
-            "expected": "High",
-            "actual": "High",
-            "note": null
-          }
-        ],
+        "end_to_end_verdict": "pass",
+        "decisive_step_id": null,
+        "decisive_step_type": null,
+        "failure_category": null,
+        "why": "Run succeeded at the task; no decisive failure to attribute.",
+        "evidence": [],
         "confidence": 1.0,
-        "crs": 0.4,
+        "crs": null,
         "counterfactual": {
-          "performed": true,
-          "result": "task_failed",
+          "performed": false,
+          "result": null,
           "confirms_attribution": false,
           "minimal": false,
           "repair": null
         },
         "confirmed": false,
-        "recommended_fix": "Re-derive priority from the ticket's severity signals.",
+        "recommended_fix": null,
         "alternatives": []
       },
       "trajectory": {
@@ -3720,7 +3738,7 @@
               "rationale": "Routed to Network Engineering (majority of retrieved tickets); priority Medium inferred from the ticket text."
             },
             "status": "ok",
-            "latency_ms": 2.206,
+            "latency_ms": 0.0,
             "context_snapshot": {
               "inputs": {
                 "retrieved": [
@@ -3885,7 +3903,7 @@
           "node_count": 4
         }
       },
-      "total_ms": 2.2,
+      "total_ms": 0,
       "started_at": null
     }
   ]

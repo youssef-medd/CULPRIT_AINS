@@ -1,0 +1,31 @@
+# Keep the build context small and never leak local state / secrets into the image.
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Python local state
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg-info
+
+# Generated artifacts (the image regenerates these)
+data/culprit.db
+data/outputs
+data/synthetic/_one.jsonl
+
+# The Next.js UI is run natively, not in this image
+ui
+demo-video
+
+# Editor / OS noise
+.vscode
+.idea
+.DS_Store
+Thumbs.db

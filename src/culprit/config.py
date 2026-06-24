@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     # --- Evaluation knobs ---
     tau: float = Field(default=0.7, ge=0.0, le=1.0)
     judge_samples: int = Field(default=5, ge=1)
+    # Max concurrent judge LLM calls. Judges are independent and I/O-bound, so
+    # the panel (steps x samples) runs as a bounded thread pool instead of
+    # serially — the "async judge pool" the design calls for.
+    judge_concurrency: int = Field(default=12, ge=1)
 
     # --- Storage / paths ---
     db_path: Path = Path("data/culprit.db")

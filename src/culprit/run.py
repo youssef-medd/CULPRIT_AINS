@@ -27,6 +27,25 @@ from culprit.recorder import TrajectoryStore, record_run
 from culprit.verdict import VerdictRenderer, VerdictReport
 
 
+def backend_banner() -> str:
+    """A one-line statement of which evaluation backend is active.
+
+    Makes the AI-vs-fallback mode explicit on every run, so the deterministic
+    stand-in (used for CI/fixtures/reproducibility) is never mistaken for the
+    real evaluation path — the LLM judges are the mechanism, not a feature.
+    """
+    if settings.nvidia_api_key:
+        return (
+            f"Backend: LLM judges - model={settings.judge_model} "
+            f"via {settings.nvidia_base_url}  [AI evaluation path]"
+        )
+    return (
+        "Backend: DETERMINISTIC FALLBACK - no NVIDIA_API_KEY set.\n"
+        "  This is reproducibility mode (fixtures/CI/offline), NOT the AI evaluation\n"
+        "  path. Set NVIDIA_API_KEY to run the real LLM judge panel."
+    )
+
+
 def load_tickets(path: Path) -> list[dict[str, Any]]:
     """Load tickets from a JSONL file (one ticket per line)."""
     tickets: list[dict[str, Any]] = []
@@ -92,6 +111,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: tickets file not found: {args.tickets}", file=sys.stderr)
         return 1
 
+    print(backend_banner(), file=sys.stderr)
     tickets = load_tickets(args.tickets)
     reports = run_pipeline(tickets, output_dir=args.output_dir)
 
