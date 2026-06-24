@@ -24,8 +24,8 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
-      - name: Install (core + agent + dev)
-        run: pip install -e ".[agent,dev]"
+      - name: Install (core + agent + dev + verdict)
+        run: pip install -e ".[agent,dev,verdict]"
 
       - name: Lint (ruff)
         run: ruff check src tests
