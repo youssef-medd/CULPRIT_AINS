@@ -58,3 +58,10 @@ pnpm-workspace.yaml
 .agents/
 .claude/skills/
 skills-lock.json
+
+# Video production: heavy/regenerable working files.
+# Keep ONLY the final rendered cut (final_output_vid/final.mp4).
+final_output_vid/*
+!final_output_vid/final.mp4
+demo-video/
+data/synthetic/_one.jsonl
