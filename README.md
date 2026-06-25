@@ -28,7 +28,9 @@ Culprit is a continuous evaluation system for non-deterministic enterprise AI ag
 
 **A 10-second story.** A user submits *"VPN keeps dropping"* — a networking issue. The agent finishes with no error, every tool returns OK, and the ticket is routed to the **wrong team**. Every traditional monitor marks this run a *success*. Culprit flags it, points at **retrieval** (it forgot to filter by `product_area`), shows the field-level evidence, and proves that filling in that one field fixes the run.
 
-> **See it:** the visual concept lives in the pitch deck [`culprit-pitch.html`](culprit-pitch.html); the concept & demo walkthrough videos are part of the entry-form submission.
+<a href="https://www.youtube.com/watch?v=lRd-r4ZOjVk" target="_blank">
+  <img src="docs/images/readme_video.png" alt="Watch the Culprit demo on YouTube" width="100%">
+</a>
 
 ## 1. The problem
 
